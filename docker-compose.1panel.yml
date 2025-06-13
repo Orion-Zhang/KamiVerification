@@ -71,6 +71,7 @@ services:
       - SECURE_HSTS_SECONDS=${SECURE_HSTS_SECONDS:-31536000}
     volumes:
       - ./media:/app/media
+      - ./static:/app/static
       - ./staticfiles:/app/staticfiles
       - ./backups:/app/backups
     ports:

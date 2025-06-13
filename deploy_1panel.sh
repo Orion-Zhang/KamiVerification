@@ -161,8 +161,9 @@ show_deployment_info() {
     echo "  - 反向代理目标: http://127.0.0.1:8000"
     echo "  - 启用SSL证书"
     echo "  - 配置静态文件代理:"
-    echo "    * /static/ -> http://127.0.0.1:8000/static/"
-    echo "    * /media/ -> http://127.0.0.1:8000/media/"
+    echo "    * /static/ -> alias /opt/cardverification/staticfiles/"
+    echo "    * /media/ -> alias /opt/cardverification/media/"
+    echo "    注意：使用 alias 直接映射到宿主机目录，而不是 proxy_pass"
     echo
     log_info "访问地址:"
     echo "  - 应用地址: https://kami.killua.tech"

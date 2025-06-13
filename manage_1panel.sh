@@ -47,6 +47,7 @@ show_help() {
     echo "  dbshell     - 进入数据库"
     echo "  migrate     - 运行数据库迁移"
     echo "  collectstatic - 收集静态文件"
+    echo "  fix-static  - 修复静态文件问题"
     echo "  fix-theme   - 修复深色主题问题"
     echo "  createsuperuser - 创建超级用户"
     echo "  cleanup     - 清理系统"
@@ -186,6 +187,51 @@ collect_static() {
     log_success "静态文件收集完成"
 }
 
+# 修复静态文件问题
+fix_static() {
+    log_info "修复静态文件问题..."
+
+    # 检查并创建静态文件目录
+    if [[ ! -d "static" ]]; then
+        log_warning "创建static目录..."
+        mkdir -p static
+    fi
+
+    if [[ ! -d "staticfiles" ]]; then
+        log_warning "创建staticfiles目录..."
+        mkdir -p staticfiles
+    fi
+
+    # 清空并重新收集静态文件
+    log_info "清空并重新收集静态文件..."
+    docker-compose -f docker-compose.1panel.yml exec web python manage.py collectstatic --noinput --clear
+
+    # 修复权限
+    log_info "修复文件权限..."
+    chmod -R 755 static/ staticfiles/ 2>/dev/null || true
+
+    # 重启web服务
+    log_info "重启web服务..."
+    docker-compose -f docker-compose.1panel.yml restart web
+
+    # 等待服务启动
+    sleep 5
+
+    log_success "静态文件修复完成！"
+    echo ""
+    log_info "1Panel反向代理配置建议："
+    echo "location /static/ {"
+    echo "    alias $(pwd)/staticfiles/;"
+    echo "    expires 30d;"
+    echo "    add_header Cache-Control \"public, immutable\";"
+    echo "}"
+    echo ""
+    log_info "如果静态文件仍然无法访问，请："
+    echo "1. 在1Panel中更新网站的反向代理配置"
+    echo "2. 清理浏览器缓存并强制刷新页面"
+    echo "3. 检查静态文件目录权限: ls -la staticfiles/"
+}
+
 # 修复主题问题
 fix_theme() {
     log_info "修复深色主题问题..."
@@ -217,7 +263,8 @@ fix_theme() {
     log_info "如果主题仍然是白色，请："
     echo "1. 清理浏览器缓存 (Ctrl+Shift+Delete)"
     echo "2. 强制刷新页面 (Ctrl+F5)"
-    echo "3. 检查1Panel反向代理配置是否包含 /static/ 路径"
+    echo "3. 检查1Panel反向代理配置是否正确映射静态文件路径"
+    echo "   应使用: location /static/ { alias $(pwd)/staticfiles/; }"
 }
 
 # 创建超级用户
@@ -273,10 +320,12 @@ show_1panel_info() {
     echo
     echo "=== 静态文件代理 ==="
     echo "路径: /static/"
-    echo "目标: http://127.0.0.1:8000/static/"
+    echo "目标: alias $(pwd)/staticfiles/"
     echo
     echo "路径: /media/"
-    echo "目标: http://127.0.0.1:8000/media/"
+    echo "目标: alias $(pwd)/media/"
+    echo
+    echo "注意: 使用 alias 直接映射到宿主机目录，而不是 proxy_pass"
     echo
     echo "=== 容器信息 ==="
     echo "应用端口: 127.0.0.1:8000"
@@ -363,6 +412,9 @@ main() {
             ;;
         collectstatic)
             collect_static
+            ;;
+        fix-static)
+            fix_static
             ;;
         fix-theme)
             fix_theme

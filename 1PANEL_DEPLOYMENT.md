@@ -88,28 +88,20 @@ chmod +x deploy_1panel.sh manage_1panel.sh
 在网站配置中添加以下反向代理规则：
 
 ```nginx
-# 静态文件代理
+# 静态文件代理 - 直接映射到宿主机目录
 location /static/ {
-    proxy_pass http://127.0.0.1:8000/static/;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    
-    # 缓存设置
+    alias /opt/cardverification/staticfiles/;
     expires 30d;
     add_header Cache-Control "public, immutable";
+
+    # 启用 gzip 压缩
+    gzip on;
+    gzip_types text/css application/javascript text/javascript application/json;
 }
 
-# 媒体文件代理
+# 媒体文件代理 - 直接映射到宿主机目录
 location /media/ {
-    proxy_pass http://127.0.0.1:8000/media/;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    
-    # 缓存设置
+    alias /opt/cardverification/media/;
     expires 7d;
     add_header Cache-Control "public";
 }
@@ -192,7 +184,20 @@ curl http://127.0.0.1:8000/api/v1/health/
 
 # 检查静态文件目录
 ls -la staticfiles/
+
+# 检查1Panel反向代理配置
+# 确保静态文件路径配置为：
+# location /static/ {
+#     alias /opt/cardverification/staticfiles/;
+#     expires 30d;
+#     add_header Cache-Control "public, immutable";
+# }
 ```
+
+**静态文件配置说明：**
+- Django 收集的静态文件位于 `staticfiles/` 目录
+- 1Panel 反向代理应直接映射到宿主机目录，而不是代理到容器
+- 路径映射：`/static/` → `/opt/cardverification/staticfiles/`
 
 #### 3. 数据库连接失败
 
