@@ -1,0 +1,67 @@
+# 快速启动配置 - 用于解决启动问题
+
+services:
+  # ===== Django 应用服务 =====
+  web:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: cardverification_web_quick
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=0
+      - SECRET_KEY=${SECRET_KEY}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      - DJANGO_SETTINGS_MODULE=CardVerification.settings
+      - DJANGO_SUPERUSER_USERNAME=${DJANGO_SUPERUSER_USERNAME:-admin}
+      - DJANGO_SUPERUSER_EMAIL=${DJANGO_SUPERUSER_EMAIL:-admin@example.com}
+      - DJANGO_SUPERUSER_PASSWORD=${DJANGO_SUPERUSER_PASSWORD}
+    volumes:
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - cardverification_network
+    # 使用简化的启动脚本
+    entrypoint: ["./docker-entrypoint-simple.sh"]
+    command: ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "2", "--timeout", "60", "CardVerification.wsgi:application"]
+
+  # ===== PostgreSQL 数据库服务 =====
+  db:
+    image: postgres:15-alpine
+    container_name: cardverification_db_quick
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-cardverification}
+      - POSTGRES_USER=${POSTGRES_USER:-cardverification}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - cardverification_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cardverification} -d ${POSTGRES_DB:-cardverification}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+# ===== 数据卷配置 =====
+volumes:
+  postgres_data:
+    driver: local
+  static_volume:
+    driver: local
+  media_volume:
+    driver: local
+
+# ===== 网络配置 =====
+networks:
+  cardverification_network:
+    driver: bridge

@@ -72,22 +72,27 @@ wait_for_redis() {
 # 运行数据库迁移
 run_migrations() {
     log_info "开始数据库迁移..."
-    
-    # 检查是否需要创建迁移文件
-    python manage.py makemigrations --check --dry-run > /dev/null 2>&1
-    if [ $? -ne 0 ]; then
-        log_warning "检测到模型变更，创建迁移文件..."
-        python manage.py makemigrations
-    fi
-    
-    # 运行迁移
-    python manage.py migrate --noinput
-    
+
+    # 设置超时时间
+    timeout 300 bash -c '
+        # 检查是否需要创建迁移文件
+        python manage.py makemigrations --check --dry-run > /dev/null 2>&1
+        if [ $? -ne 0 ]; then
+            echo "检测到模型变更，创建迁移文件..."
+            python manage.py makemigrations
+        fi
+
+        # 运行迁移
+        echo "执行数据库迁移..."
+        python manage.py migrate --noinput
+    '
+
     if [ $? -eq 0 ]; then
         log_success "数据库迁移完成！"
     else
-        log_error "数据库迁移失败！"
-        exit 1
+        log_error "数据库迁移失败或超时！"
+        # 不要立即退出，尝试继续启动
+        log_warning "跳过迁移，继续启动服务..."
     fi
 }
 
