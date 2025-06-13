@@ -48,6 +48,9 @@ POSTGRES_DB=cardverification_prod
 POSTGRES_USER=cardverification_user
 POSTGRES_PASSWORD=your-secure-password
 
+# 数据库SSL模式 (Docker环境建议使用 prefer)
+DB_SSLMODE=prefer
+
 # 安全配置
 SECURE_SSL_REDIRECT=True
 SECURE_HSTS_SECONDS=31536000
@@ -200,6 +203,27 @@ docker-compose -f docker-compose.1panel.yml exec db pg_isready
 # 查看数据库日志
 docker-compose -f docker-compose.1panel.yml logs db
 ```
+
+#### 4. SSL连接错误
+
+如果遇到 `server does not support SSL, but SSL was required` 错误：
+
+```bash
+# 检查环境配置中的SSL模式
+grep DB_SSLMODE .env
+
+# 如果没有配置，添加以下行到 .env 文件
+echo "DB_SSLMODE=prefer" >> .env
+
+# 重启服务
+./manage_1panel.sh restart
+```
+
+**SSL模式说明：**
+- `disable`: 禁用SSL
+- `allow`: 如果服务器支持则使用SSL
+- `prefer`: 优先使用SSL，但不强制（推荐Docker环境）
+- `require`: 强制使用SSL（推荐生产环境）
 
 ### 性能优化
 

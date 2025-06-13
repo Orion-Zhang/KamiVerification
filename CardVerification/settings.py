@@ -90,6 +90,11 @@ WSGI_APPLICATION = 'CardVerification.wsgi.application'
 
 # 数据库配置
 if os.environ.get('POSTGRES_DB'):
+    # SSL模式配置 - 支持环境变量控制
+    # Docker环境通常使用 'prefer' 或 'disable'
+    # 生产环境建议使用 'require'
+    ssl_mode = os.environ.get('DB_SSLMODE', 'prefer')
+
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
@@ -101,7 +106,7 @@ if os.environ.get('POSTGRES_DB'):
             'CONN_MAX_AGE': 300,
             'OPTIONS': {
                 'connect_timeout': 10,
-                'sslmode': 'require',
+                'sslmode': ssl_mode,
                 'application_name': 'CardVerification',
             },
             'CONN_HEALTH_CHECKS': True,
