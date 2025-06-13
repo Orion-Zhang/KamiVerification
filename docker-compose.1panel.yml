@@ -1,0 +1,106 @@
+version: '3.8'
+
+# 适配1Panel部署的Docker Compose配置
+# 移除Nginx服务，使用1Panel内置OpenResty反向代理
+
+services:
+  # PostgreSQL 数据库
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-cardverification}
+      POSTGRES_USER: ${POSTGRES_USER:-cardverification}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cardverification}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Redis 缓存
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Django 应用 - 适配1Panel
+  web:
+    build: 
+      context: .
+      dockerfile: Dockerfile.1panel
+    restart: unless-stopped
+    environment:
+      - DEBUG=${DEBUG:-False}
+      - SECRET_KEY=${SECRET_KEY}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-127.0.0.1,localhost,kami.killua.tech}
+      - POSTGRES_DB=${POSTGRES_DB:-cardverification}
+      - POSTGRES_USER=${POSTGRES_USER:-cardverification}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-password}
+      - DB_HOST=db
+      - DB_PORT=5432
+      - REDIS_URL=redis://redis:6379/1
+      - USE_REDIS_SESSIONS=${USE_REDIS_SESSIONS:-True}
+      - SECURE_SSL_REDIRECT=${SECURE_SSL_REDIRECT:-True}
+      - SECURE_HSTS_SECONDS=${SECURE_HSTS_SECONDS:-31536000}
+    volumes:
+      - ./logs:/app/logs
+      - ./media:/app/media
+      - ./staticfiles:/app/staticfiles
+      - ./backups:/app/backups
+    ports:
+      - "127.0.0.1:8000:8000"  # 只绑定到本地，通过1Panel OpenResty代理
+    networks:
+      - app-network
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+networks:
+  app-network:
+    driver: bridge
+    name: cardverification_network
+
+volumes:
+  postgres_data:
+    name: cardverification_postgres_data
+  redis_data:
+    name: cardverification_redis_data

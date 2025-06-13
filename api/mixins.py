@@ -1,19 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-API混入类和装饰器
-================
-
-提供API开发中常用的混入类和装饰器，包括：
-1. 请求验证和解析
-2. 响应格式化
-3. 错误处理
-4. 日志记录
-5. 性能监控
-
-作者：Augment Agent
-日期：2024
-"""
-
 import json
 import time
 import logging

@@ -1,34 +1,30 @@
--- ===== PostgreSQL 初始化脚本 =====
--- 卡片验证系统数据库初始化
+-- PostgreSQL 初始化脚本
+-- 为 CardVerification 项目创建数据库和用户
 
--- 设置数据库编码和排序规则
-ALTER DATABASE cardverification SET timezone TO 'Asia/Shanghai';
+-- 创建扩展
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pg_stat_statements";
 
--- 创建扩展（如果需要）
--- CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
--- CREATE EXTENSION IF NOT EXISTS "pg_trgm";
+-- 设置时区
+SET timezone = 'Asia/Shanghai';
 
--- 创建索引优化查询性能
--- 这些索引将在Django迁移后创建，此处仅作为参考
+-- 创建索引优化
+-- 这些索引将在 Django 迁移后手动创建，这里只是示例
 
--- 用户相关索引
--- CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_accounts_customuser_username ON accounts_customuser(username);
--- CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_accounts_customuser_email ON accounts_customuser(email);
--- CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_accounts_customuser_is_active ON accounts_customuser(is_active);
-
--- 卡片相关索引
--- CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_cards_card_key ON cards_card(key);
--- CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_cards_card_status ON cards_card(status);
--- CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_cards_card_created_at ON cards_card(created_at);
-
--- API相关索引
--- CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_api_apikey_key ON api_apikey(key);
--- CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_api_apikey_is_active ON api_apikey(is_active);
-
--- 设置数据库参数优化
+-- 性能优化设置
 ALTER SYSTEM SET shared_preload_libraries = 'pg_stat_statements';
 ALTER SYSTEM SET log_statement = 'all';
-ALTER SYSTEM SET log_min_duration_statement = 1000;
+ALTER SYSTEM SET log_duration = on;
+ALTER SYSTEM SET log_min_duration_statement = 1000; -- 记录超过1秒的查询
+
+-- 连接池优化
+ALTER SYSTEM SET max_connections = 200;
+ALTER SYSTEM SET shared_buffers = '256MB';
+ALTER SYSTEM SET effective_cache_size = '1GB';
+ALTER SYSTEM SET maintenance_work_mem = '64MB';
+ALTER SYSTEM SET checkpoint_completion_target = 0.9;
+ALTER SYSTEM SET wal_buffers = '16MB';
+ALTER SYSTEM SET default_statistics_target = 100;
 
 -- 重新加载配置
 SELECT pg_reload_conf();

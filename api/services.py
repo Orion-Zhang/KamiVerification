@@ -1,14 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-API业务逻辑服务层
-===============
-
-将业务逻辑从视图中分离，提供可重用的服务类。
-
-作者：Augment Agent
-日期：2024
-"""
-
 import hashlib
 import logging
 from datetime import datetime, timedelta

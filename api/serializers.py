@@ -1,14 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-API序列化器
-==========
-
-定义API输入输出的序列化器，确保数据格式的一致性和验证。
-
-作者：Augment Agent
-日期：2024
-"""
-
 from rest_framework import serializers
 from django.utils import timezone
 from cards.models import Card, DeviceBinding, VerificationLog
