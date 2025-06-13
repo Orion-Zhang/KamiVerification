@@ -1,0 +1,369 @@
+{% extends 'base.html' %}
+
+{% block title %}API密钥管理 - Killua 卡密系统{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% load static %}{% static 'js/status-toggle.js' %}">
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-key me-2"></i>API密钥管理</h2>
+    <div>
+        <a href="{% url 'api:call_logs' %}" class="btn btn-outline-info me-2">
+            <i class="fas fa-history me-2"></i>调用记录
+        </a>
+        <a href="{% url 'api:key_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>创建API密钥
+        </a>
+    </div>
+</div>
+
+<!-- 批量操作工具栏 -->
+<div class="card card-glass mb-3" id="batch-toolbar" style="display: none;">
+    <div class="card-body py-2">
+        <div class="d-flex align-items-center justify-content-between">
+            <span class="text-muted">
+                <i class="fas fa-check-square me-2"></i>
+                已选择 <span class="selected-count">0</span> 个API密钥
+            </span>
+            <div class="btn-group btn-group-sm">
+                <button type="button" class="btn btn-success batch-toggle-btn"
+                        data-action="enable" data-item-type="api_key" disabled>
+                    <i class="fas fa-toggle-on me-1"></i>批量启用
+                </button>
+                <button type="button" class="btn btn-secondary batch-toggle-btn"
+                        data-action="disable" data-item-type="api_key" disabled>
+                    <i class="fas fa-toggle-off me-1"></i>批量禁用
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 搜索 -->
+<div class="card card-glass mb-4">
+    <div class="card-body">
+        <form method="get">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-8">
+                    <label class="form-label">搜索</label>
+                    <input type="text" class="form-control" name="search" value="{{ search }}"
+                           placeholder="密钥名称、密钥、创建者...">
+                </div>
+                <div class="col-md-4">
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-outline-primary">
+                            <i class="fas fa-search me-2"></i>搜索
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- API密钥列表 -->
+<div class="card card-glass">
+    <div class="card-body">
+        {% if api_keys %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th width="40">
+                                <div class="form-check">
+                                    <input class="form-check-input batch-select-all" type="checkbox" id="selectAll">
+                                    <label class="form-check-label" for="selectAll"></label>
+                                </div>
+                            </th>
+                            <th>名称</th>
+                            <th>密钥</th>
+                            <th>状态</th>
+                            <th>频率限制</th>
+                            <th>使用次数</th>
+                            <th>最后使用</th>
+                            <th>创建者</th>
+                            <th>创建时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for key in api_keys %}
+                            <tr {% if not key.is_active %}class="table-secondary" style="opacity: 0.6;"{% endif %}>
+                                <td>
+                                    <div class="form-check">
+                                        <input class="form-check-input batch-select-item" type="checkbox"
+                                               value="{{ key.pk }}" id="select{{ key.pk }}">
+                                        <label class="form-check-label" for="select{{ key.pk }}"></label>
+                                    </div>
+                                </td>
+                                <td><strong>{{ key.name }}</strong></td>
+                                <td>
+                                    <div class="card-key-container d-inline-block position-relative">
+                                        <code class="card-key-text" onclick="copyToClipboard('{{ key.key }}')" title="点击复制完整密钥">{{ key.key|slice:":8" }}...</code>
+                                        <i class="fas fa-copy copy-icon"></i>
+                                    </div>
+                                </td>
+                                <td>
+                                    <button type="button"
+                                            class="btn btn-sm status-toggle-btn {% if key.is_active %}btn-success{% else %}btn-secondary{% endif %}"
+                                            data-item-id="{{ key.pk }}"
+                                            data-item-type="api_key"
+                                            data-current-status="{{ key.is_active|yesno:'true,false' }}"
+                                            title="点击切换状态">
+                                        <i class="fas {% if key.is_active %}fa-toggle-on{% else %}fa-toggle-off{% endif %} me-1"></i>
+                                        <span class="btn-text">{% if key.is_active %}启用{% else %}禁用{% endif %}</span>
+                                    </button>
+                                </td>
+                                <td>{{ key.rate_limit }}/分钟</td>
+                                <td>{{ key.usage_count }}</td>
+                                <td>
+                                    {% if key.last_used_at %}
+                                        {{ key.last_used_at|timesince }}前
+                                    {% else %}
+                                        <span class="text-muted">从未使用</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ key.created_by.username }}</td>
+                                <td>{{ key.created_at|date:"m-d H:i" }}</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{% url 'api:key_edit' key.pk %}" class="btn btn-outline-warning" title="编辑">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a href="{% url 'api:key_delete' key.pk %}" class="btn btn-outline-danger" title="删除">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- 分页 -->
+            {% if is_paginated %}
+                <nav aria-label="分页导航">
+                    <ul class="pagination">
+                        {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page=1{% if request.GET %}&{{ request.GET.urlencode }}{% endif %}">首页</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET %}&{{ request.GET.urlencode }}{% endif %}">上一页</a>
+                            </li>
+                        {% endif %}
+                        
+                        <li class="page-item active">
+                            <span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+                        </li>
+                        
+                        {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET %}&{{ request.GET.urlencode }}{% endif %}">下一页</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET %}&{{ request.GET.urlencode }}{% endif %}">末页</a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            {% endif %}
+        {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-key fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">暂无API密钥</h5>
+                <p class="text-muted">点击上方按钮创建您的第一个API密钥</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% load static %}
+<script src="{% static 'js/status-toggle.js' %}"></script>
+<script>
+// 监听复选框变化，显示/隐藏批量操作工具栏
+document.addEventListener('change', function(e) {
+    if (e.target.matches('.batch-select-item, .batch-select-all')) {
+        updateBatchToolbar();
+    }
+});
+
+function updateBatchToolbar() {
+    const selectedItems = document.querySelectorAll('.batch-select-item:checked');
+    const toolbar = document.getElementById('batch-toolbar');
+    const countSpans = document.querySelectorAll('.selected-count');
+
+    if (selectedItems.length > 0) {
+        toolbar.style.display = 'block';
+        countSpans.forEach(span => span.textContent = selectedItems.length);
+    } else {
+        toolbar.style.display = 'none';
+    }
+}
+</script>
+<style>
+/* API密钥复制功能样式 */
+.card-key-container {
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+}
+
+.card-key-container:hover {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+.card-key-text {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    cursor: pointer;
+}
+
+.copy-icon {
+    position: absolute;
+    right: -20px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    color: var(--text-muted);
+    opacity: 0;
+    transition: all 0.3s ease;
+    pointer-events: none;
+}
+
+.card-key-container:hover .copy-icon {
+    opacity: 1;
+    color: var(--primary-color);
+}
+
+.card-key-copied {
+    background: rgba(16, 185, 129, 0.1) !important;
+    border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
+.card-key-copied .copy-icon {
+    color: var(--success-color) !important;
+}
+</style>
+
+<script>
+function copyToClipboard(text) {
+    const container = event.target.closest('.card-key-container');
+    const icon = container.querySelector('.copy-icon');
+
+    // 尝试使用现代 Clipboard API
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(function() {
+            showCopySuccess(container, icon);
+        }).catch(function() {
+            fallbackCopyTextToClipboard(text, container, icon);
+        });
+    } else {
+        // 降级到传统方法
+        fallbackCopyTextToClipboard(text, container, icon);
+    }
+}
+
+function fallbackCopyTextToClipboard(text, container, icon) {
+    // 创建临时文本区域
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+
+    // 避免滚动到底部
+    textArea.style.top = "0";
+    textArea.style.left = "0";
+    textArea.style.position = "fixed";
+    textArea.style.opacity = "0";
+
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+
+    try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+            showCopySuccess(container, icon);
+        } else {
+            showCopyError();
+        }
+    } catch (err) {
+        showCopyError();
+    }
+
+    document.body.removeChild(textArea);
+}
+
+function showCopySuccess(container, icon) {
+    // 添加成功样式
+    container.classList.add('card-key-copied');
+    icon.classList.remove('fa-copy');
+    icon.classList.add('fa-check');
+
+    // 显示简短的成功消息
+    const originalTitle = container.title;
+    container.title = '已复制到剪贴板！';
+
+    setTimeout(() => {
+        container.classList.remove('card-key-copied');
+        icon.classList.remove('fa-check');
+        icon.classList.add('fa-copy');
+        container.title = originalTitle;
+    }, 1500);
+}
+
+function showCopyError() {
+    // 创建一个临时提示
+    const toast = document.createElement('div');
+    toast.innerHTML = `
+        <div style="
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--danger-color);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 9999;
+            font-size: 14px;
+            animation: slideIn 0.3s ease;
+        ">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            复制失败，请手动选择并复制
+        </div>
+    `;
+
+    document.body.appendChild(toast);
+
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
+
+// 添加动画样式
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+`;
+document.head.appendChild(style);
+</script>
+{% endblock %}

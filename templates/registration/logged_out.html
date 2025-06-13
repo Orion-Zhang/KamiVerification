@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% block title %}注销成功 - Killua 卡密系统{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center" style="margin-top: -20px;">
+    <div class="col-md-8 col-lg-6">
+        <div class="card card-glass">
+            <div class="card-header text-center py-3">
+                <div class="logout-icon mb-2">
+                    <i class="fas fa-sign-out-alt fa-2x text-success"></i>
+                </div>
+                <h4 class="mb-0 gradient-text">
+                    注销成功
+                </h4>
+            </div>
+            <div class="card-body text-center py-4">
+                <div class="mb-3">
+                    <div class="success-animation mb-3">
+                        <i class="fas fa-check-circle fa-3x text-success"></i>
+                    </div>
+                    <h5 class="text-success mb-2">您已成功退出登录</h5>
+                    <p class="text-muted mb-3">
+                        感谢您使用 Killua 卡密系统！<br>
+                        您的会话已安全结束，可以放心离开。
+                    </p>
+                </div>
+                
+                <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                    <a href="{% url 'home' %}" class="btn btn-primary btn-glass me-md-2">
+                        <i class="fas fa-home me-2"></i>返回首页
+                    </a>
+                    <a href="{% url 'accounts:login' %}" class="btn btn-outline-primary btn-glass">
+                        <i class="fas fa-sign-in-alt me-2"></i>重新登录
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.logout-icon {
+    animation: fadeInDown 0.6s ease-out;
+}
+
+.success-animation {
+    animation: bounceIn 0.8s ease-out 0.2s both;
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes bounceIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.3);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.05);
+    }
+    70% {
+        transform: scale(0.9);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.btn-glass:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+}
+</style>
+{% endblock %}

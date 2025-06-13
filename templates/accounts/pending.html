@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+
+{% block title %}等待审批 - Killua 卡密系统{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center" style="margin-top: -20px;">
+    <div class="col-md-8 col-lg-6">
+        <div class="card card-glass">
+            <div class="card-header text-center py-3">
+                <div class="pending-icon mb-2">
+                    <i class="fas fa-clock fa-2x text-warning"></i>
+                </div>
+                <h4 class="mb-0 gradient-text">
+                    等待审批
+                </h4>
+            </div>
+            <div class="card-body text-center py-4">
+                <div class="mb-3">
+                    <div class="pending-animation mb-3">
+                        <i class="fas fa-hourglass-half fa-3x text-warning"></i>
+                    </div>
+                    <h5 class="text-primary mb-2">您的注册申请已提交</h5>
+                    <p class="text-muted mb-3">
+                        感谢您的注册！您的账户正在等待超级管理员审批。<br>
+                        审批通过后，您将可以登录并使用系统的所有功能。
+                    </p>
+                </div>
+
+                <div class="alert alert-info alert-glass mb-3">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>注意事项：</strong>
+                    <ul class="list-unstyled mt-2 mb-0 text-start">
+                        <li>• 审批通常在1-2个工作日内完成</li>
+                        <li>• 请确保您提供的邮箱地址正确，我们会通过邮件通知审批结果</li>
+                        <li>• 如有疑问，请联系系统管理员</li>
+                    </ul>
+                </div>
+
+                <div class="mt-3">
+                    <a href="{% url 'home' %}" class="btn btn-primary me-2">
+                        <i class="fas fa-home me-2"></i>返回首页
+                    </a>
+                    <a href="{% url 'accounts:login' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-sign-in-alt me-2"></i>尝试登录
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.pending-animation {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.05);
+        opacity: 0.8;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.pending-icon {
+    animation: rotate 3s linear infinite;
+}
+
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.alert-glass {
+    background: rgba(13, 110, 253, 0.1);
+    border: 1px solid rgba(13, 110, 253, 0.2);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+}
+
+.card-glass {
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+</style>
+{% endblock %}

@@ -1,0 +1,400 @@
+{% extends 'base.html' %}
+
+{% block title %}卡密详情 - Killua 卡密系统{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-credit-card me-2"></i>卡密详情</h2>
+    <div>
+        <a href="{% url 'cards:edit' card.pk %}" class="btn btn-warning me-2">
+            <i class="fas fa-edit me-2"></i>编辑
+        </a>
+        <a href="{% url 'cards:delete' card.pk %}" class="btn btn-danger me-2">
+            <i class="fas fa-trash me-2"></i>删除
+        </a>
+        <a href="{% url 'cards:list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>返回列表
+        </a>
+    </div>
+</div>
+
+<!-- 卡密基本信息 -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card card-glass">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>基本信息</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="info-item">
+                            <span class="info-label">卡密</span>
+                            <span class="info-value">
+                                <div class="card-key-container d-inline-block position-relative">
+                                    <code class="card-key-text" onclick="copyToClipboard('{{ card.card_key }}')" title="点击复制">{{ card.card_key }}</code>
+                                    <i class="fas fa-copy copy-icon"></i>
+                                </div>
+                            </span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">类型</span>
+                            <span class="info-value">
+                                {% if card.card_type == 'time' %}
+                                    <span class="badge badge-info-glass">{{ card.get_card_type_display }}</span>
+                                {% else %}
+                                    <span class="badge badge-success-glass">{{ card.get_card_type_display }}</span>
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">状态</span>
+                            <span class="info-value">
+                                {% if card.status == 'active' %}
+                                    <span class="badge badge-success-glass">{{ card.get_status_display }}</span>
+                                {% elif card.status == 'expired' %}
+                                    <span class="badge bg-danger">{{ card.get_status_display }}</span>
+                                {% elif card.status == 'used' %}
+                                    <span class="badge badge-warning-glass">{{ card.get_status_display }}</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ card.get_status_display }}</span>
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">创建者</span>
+                            <span class="info-value">{{ card.created_by.username }}</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        {% if card.card_type == 'time' %}
+                        <div class="info-item">
+                            <span class="info-label">有效天数</span>
+                            <span class="info-value">{{ card.valid_days|default:"-" }} 天</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">过期时间</span>
+                            <span class="info-value">
+                                {% if card.expire_date %}
+                                    {{ card.expire_date|date:"Y-m-d H:i:s" }}
+                                {% else %}
+                                    <span class="text-muted">未设置</span>
+                                {% endif %}
+                            </span>
+                        </div>
+                        {% elif card.card_type == 'count' %}
+                        <div class="info-item">
+                            <span class="info-label">总次数</span>
+                            <span class="info-value">{{ card.total_count|default:"-" }}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">已使用</span>
+                            <span class="info-value">{{ card.used_count }}</span>
+                        </div>
+                        {% endif %}
+                        <div class="info-item">
+                            <span class="info-label">多设备绑定</span>
+                            <span class="info-value">
+                                {% if card.allow_multi_device %}
+                                    <span class="badge badge-success-glass">允许</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">不允许</span>
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">最大设备数</span>
+                            <span class="info-value">{{ card.max_devices }}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">创建时间</span>
+                            <span class="info-value">{{ card.created_at|date:"Y-m-d H:i:s" }}</span>
+                        </div>
+                    </div>
+                </div>
+                {% if card.note %}
+                <div class="mt-3">
+                    <div class="info-item">
+                        <span class="info-label">备注</span>
+                        <span class="info-value">{{ card.note }}</span>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- 统计信息 -->
+    <div class="col-md-4">
+        <div class="card card-glass">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>使用统计</h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center">
+                    <div class="mb-3">
+                        <h3 class="gradient-text">{{ device_bindings|length }}</h3>
+                        <small class="text-muted">绑定设备数</small>
+                    </div>
+                    <div class="mb-3">
+                        <h3 class="gradient-text">{{ verification_logs|length }}</h3>
+                        <small class="text-muted">验证记录数</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 设备绑定信息 -->
+{% if device_bindings %}
+<div class="card card-glass mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-mobile-alt me-2"></i>设备绑定 ({{ device_bindings|length }})</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>设备ID</th>
+                        <th>绑定时间</th>
+                        <th>最后活跃</th>
+                        <th>IP地址</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for binding in device_bindings %}
+                    <tr>
+                        <td><code>{{ binding.device_id|slice:":12" }}...</code></td>
+                        <td>{{ binding.bind_time|date:"m-d H:i" }}</td>
+                        <td>
+                            {% if binding.last_active_time %}
+                                {{ binding.last_active_time|timesince }}前
+                            {% else %}
+                                <span class="text-muted">从未活跃</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ binding.ip_address }}</td>
+                        <td>
+                            <a href="{% url 'cards:unbind_device' card.pk %}?device_id={{ binding.device_id }}" 
+                               class="btn btn-sm btn-outline-danger"
+                               onclick="return confirm('确认解绑此设备？')">
+                                <i class="fas fa-unlink"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- 验证记录 -->
+{% if verification_logs %}
+<div class="card card-glass">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-history me-2"></i>最近验证记录 ({{ verification_logs|length }})</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>验证时间</th>
+                        <th>IP地址</th>
+                        <th>状态</th>
+                        <th>错误信息</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in verification_logs %}
+                    <tr>
+                        <td>{{ log.verification_time|date:"m-d H:i:s" }}</td>
+                        <td>{{ log.ip_address }}</td>
+                        <td>
+                            {% if log.success %}
+                                <span class="badge bg-success">成功</span>
+                            {% else %}
+                                <span class="badge bg-danger">失败</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if log.error_message %}
+                                <span class="text-danger small">{{ log.error_message|truncatechars:30 }}</span>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<style>
+.card-key-container {
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+}
+
+.card-key-container:hover {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+.card-key-text {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    cursor: pointer;
+}
+
+.copy-icon {
+    position: absolute;
+    right: -20px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    color: var(--text-muted);
+    opacity: 0;
+    transition: all 0.3s ease;
+    pointer-events: none;
+}
+
+.card-key-container:hover .copy-icon {
+    opacity: 1;
+    color: var(--primary-color);
+}
+
+.card-key-copied {
+    background: rgba(16, 185, 129, 0.1) !important;
+    border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
+.card-key-copied .copy-icon {
+    color: var(--success-color) !important;
+}
+</style>
+
+<script>
+function copyToClipboard(text) {
+    const container = event.target.closest('.card-key-container');
+    const icon = container.querySelector('.copy-icon');
+
+    // 尝试使用现代 Clipboard API
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(function() {
+            showCopySuccess(container, icon);
+        }).catch(function() {
+            fallbackCopyTextToClipboard(text, container, icon);
+        });
+    } else {
+        // 降级到传统方法
+        fallbackCopyTextToClipboard(text, container, icon);
+    }
+}
+
+function fallbackCopyTextToClipboard(text, container, icon) {
+    // 创建临时文本区域
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+
+    // 避免滚动到底部
+    textArea.style.top = "0";
+    textArea.style.left = "0";
+    textArea.style.position = "fixed";
+    textArea.style.opacity = "0";
+
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+
+    try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+            showCopySuccess(container, icon);
+        } else {
+            showCopyError();
+        }
+    } catch (err) {
+        showCopyError();
+    }
+
+    document.body.removeChild(textArea);
+}
+
+function showCopySuccess(container, icon) {
+    // 添加成功样式
+    container.classList.add('card-key-copied');
+    icon.classList.remove('fa-copy');
+    icon.classList.add('fa-check');
+
+    // 显示简短的成功消息
+    const originalTitle = container.title;
+    container.title = '已复制到剪贴板！';
+
+    setTimeout(() => {
+        container.classList.remove('card-key-copied');
+        icon.classList.remove('fa-check');
+        icon.classList.add('fa-copy');
+        container.title = originalTitle;
+    }, 1500);
+}
+
+function showCopyError() {
+    // 创建一个临时提示
+    const toast = document.createElement('div');
+    toast.innerHTML = `
+        <div style="
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--danger-color);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 9999;
+            font-size: 14px;
+            animation: slideIn 0.3s ease;
+        ">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            复制失败，请手动选择并复制
+        </div>
+    `;
+
+    document.body.appendChild(toast);
+
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
+
+// 添加动画样式
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+`;
+document.head.appendChild(style);
+</script>
+{% endblock %}

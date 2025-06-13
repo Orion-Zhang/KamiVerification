@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block title %}创建API密钥 - Killua 卡密系统{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card card-glass">
+            <div class="card-header">
+                <h4 class="mb-0 gradient-text">
+                    <i class="fas fa-key me-2"></i>创建API密钥
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.name.id_for_label }}" class="form-label">密钥名称 *</label>
+                        {{ form.name }}
+                        {% if form.name.errors %}
+                            <div class="text-danger small mt-1">{{ form.name.errors }}</div>
+                        {% endif %}
+                        <small class="form-text text-muted">为这个API密钥起一个便于识别的名称</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.rate_limit.id_for_label }}" class="form-label">频率限制 (次/分钟) *</label>
+                        {{ form.rate_limit }}
+                        {% if form.rate_limit.errors %}
+                            <div class="text-danger small mt-1">{{ form.rate_limit.errors }}</div>
+                        {% endif %}
+                        <small class="form-text text-muted">设置每分钟最大调用次数，防止滥用</small>
+                    </div>
+                    
+                    <div class="alert alert-info alert-glass">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>注意：</strong>API密钥创建后将自动生成，请妥善保管。
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'api:key_list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>返回列表
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>创建密钥
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

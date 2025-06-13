@@ -1,0 +1,131 @@
+version: '3.8'
+
+services:
+  # Django 应用服务 - 生产环境
+  web:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: cardverification_web_prod
+    volumes:
+      - static_volume:/app/static
+      - media_volume:/app/media
+      - logs_volume:/app/logs
+    environment:
+      - DEBUG=0
+      - DJANGO_SETTINGS_MODULE=CardVerification.settings
+      - POSTGRES_DB=cardverification
+      - POSTGRES_USER=cardverification
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-cardverification123}
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-here}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1}
+    depends_on:
+      - db
+      - redis
+    networks:
+      - cardverification_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # PostgreSQL 数据库服务 - 生产环境
+  db:
+    image: postgres:15-alpine
+    container_name: cardverification_db_prod
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backups:/backups
+    environment:
+      - POSTGRES_DB=cardverification
+      - POSTGRES_USER=cardverification
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-cardverification123}
+    networks:
+      - cardverification_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cardverification"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis 缓存服务 - 生产环境
+  redis:
+    image: redis:7-alpine
+    container_name: cardverification_redis_prod
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis123}
+    networks:
+      - cardverification_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Nginx 反向代理 - 生产环境
+  nginx:
+    image: nginx:alpine
+    container_name: cardverification_nginx_prod
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - static_volume:/app/static:ro
+      - media_volume:/app/media:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - web
+    networks:
+      - cardverification_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # 数据库备份服务
+  db_backup:
+    image: postgres:15-alpine
+    container_name: cardverification_backup
+    volumes:
+      - ./backups:/backups
+      - ./scripts:/scripts
+    environment:
+      - POSTGRES_DB=cardverification
+      - POSTGRES_USER=cardverification
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-cardverification123}
+      - POSTGRES_HOST=db
+    depends_on:
+      - db
+    networks:
+      - cardverification_network
+    command: >
+      sh -c "
+        while true; do
+          sleep 86400;
+          pg_dump -h db -U cardverification cardverification > /backups/backup_$$(date +%Y%m%d_%H%M%S).sql;
+          find /backups -name '*.sql' -mtime +7 -delete;
+        done
+      "
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  static_volume:
+  media_volume:
+  logs_volume:
+
+networks:
+  cardverification_network:
+    driver: bridge

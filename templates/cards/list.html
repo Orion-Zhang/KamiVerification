@@ -1,0 +1,686 @@
+{% extends 'base.html' %}
+
+{% block title %}卡密管理 - Killua 卡密系统{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-credit-card me-2"></i>卡密管理</h2>
+    <div>
+        <a href="{% url 'cards:create' %}" class="btn btn-primary me-2">
+            <i class="fas fa-plus me-2"></i>创建卡密
+        </a>
+        <a href="{% url 'cards:batch_create' %}" class="btn btn-success me-2">
+            <i class="fas fa-layer-group me-2"></i>批量生成
+        </a>
+        <a href="{% url 'cards:export' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}" class="btn btn-info">
+            <i class="fas fa-download me-2"></i>导出Excel
+        </a>
+    </div>
+</div>
+
+<!-- 批量操作工具栏 -->
+<div class="card card-glass mb-3" id="batch-toolbar" style="display: none;">
+    <div class="card-body py-2">
+        <div class="d-flex align-items-center justify-content-between">
+            <span class="text-muted">
+                <i class="fas fa-check-square me-2"></i>
+                已选择 <span class="selected-count">0</span> 个卡密
+            </span>
+            <div class="btn-group btn-group-sm">
+                <button type="button" class="btn btn-success batch-toggle-btn"
+                        data-action="enable" data-item-type="card" disabled>
+                    <i class="fas fa-toggle-on me-1"></i>批量启用
+                </button>
+                <button type="button" class="btn btn-secondary batch-toggle-btn"
+                        data-action="disable" data-item-type="card" disabled>
+                    <i class="fas fa-toggle-off me-1"></i>批量禁用
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 搜索和筛选 -->
+<div class="card card-glass mb-4 animate-on-scroll">
+    <div class="card-body">
+        <form method="get" class="search-form">
+            <div class="row g-3 align-items-end">
+                <div class="col-lg-4 col-md-6">
+                    <label class="form-label">
+                        <i class="fas fa-search me-2"></i>搜索
+                    </label>
+                    <input type="text" class="form-control" name="search" value="{{ search }}"
+                           placeholder="卡密、备注、创建者..." autocomplete="off">
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <label class="form-label">
+                        <i class="fas fa-tags me-2"></i>卡密类型
+                    </label>
+                    <select class="form-select" name="card_type">
+                        <option value="">全部类型</option>
+                        {% for value, label in card_type_choices %}
+                            <option value="{{ value }}" {% if card_type == value %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <label class="form-label">
+                        <i class="fas fa-toggle-on me-2"></i>状态
+                    </label>
+                    <select class="form-select" name="status">
+                        <option value="">全部状态</option>
+                        {% for value, label in status_choices %}
+                            <option value="{{ value }}" {% if status == value %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-lg-2 col-md-6">
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-outline-primary">
+                            <i class="fas fa-search me-2"></i>搜索
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 快速筛选标签 -->
+            <div class="row mt-3">
+                <div class="col-12">
+                    <div class="quick-filters">
+                        <span class="filter-label">快速筛选：</span>
+                        <a href="?status=active" class="filter-tag {% if status == 'active' %}active{% endif %}">
+                            <i class="fas fa-check-circle me-1"></i>活跃
+                        </a>
+                        <a href="?status=expired" class="filter-tag {% if status == 'expired' %}active{% endif %}">
+                            <i class="fas fa-times-circle me-1"></i>已过期
+                        </a>
+                        <a href="?card_type=time" class="filter-tag {% if card_type == 'time' %}active{% endif %}">
+                            <i class="fas fa-clock me-1"></i>时间卡
+                        </a>
+                        <a href="?card_type=count" class="filter-tag {% if card_type == 'count' %}active{% endif %}">
+                            <i class="fas fa-sort-numeric-up me-1"></i>次数卡
+                        </a>
+                        {% if search or card_type or status %}
+                            <a href="{% url 'cards:list' %}" class="filter-tag clear">
+                                <i class="fas fa-times me-1"></i>清除筛选
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 卡密列表 -->
+<div class="card card-glass">
+    <div class="card-body">
+        {% if cards %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th width="40">
+                                <div class="form-check">
+                                    <input class="form-check-input batch-select-all" type="checkbox" id="selectAll">
+                                    <label class="form-check-label" for="selectAll"></label>
+                                </div>
+                            </th>
+                            <th>卡密</th>
+                            <th>类型</th>
+                            <th>状态</th>
+                            <th>过期信息</th>
+                            <th>设备绑定</th>
+                            <th>创建者</th>
+                            <th>创建时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for card in cards %}
+                            <tr {% if card.status == 'inactive' %}class="table-secondary" style="opacity: 0.6;"{% endif %}>
+                                <td>
+                                    <div class="form-check">
+                                        <input class="form-check-input batch-select-item" type="checkbox"
+                                               value="{{ card.pk }}" id="select{{ card.pk }}">
+                                        <label class="form-check-label" for="select{{ card.pk }}"></label>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="card-key-container d-inline-block position-relative">
+                                        <code class="card-key-text" onclick="copyToClipboard('{{ card.card_key }}')" title="点击复制完整卡密">{{ card.card_key|slice:":8" }}***</code>
+                                        <i class="fas fa-copy copy-icon"></i>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if card.card_type == 'time' %}
+                                        <span class="badge bg-primary">{{ card.get_card_type_display }}</span>
+                                    {% else %}
+                                        <span class="badge bg-success">{{ card.get_card_type_display }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if card.status == 'active' or card.status == 'inactive' %}
+                                        <button type="button"
+                                                class="btn btn-sm status-toggle-btn {% if card.status == 'active' %}btn-success{% else %}btn-secondary{% endif %}"
+                                                data-item-id="{{ card.pk }}"
+                                                data-item-type="card"
+                                                data-current-status="{% if card.status == 'active' %}true{% else %}false{% endif %}"
+                                                title="点击切换状态">
+                                            <i class="fas {% if card.status == 'active' %}fa-toggle-on{% else %}fa-toggle-off{% endif %} me-1"></i>
+                                            <span class="btn-text">{{ card.get_status_display }}</span>
+                                        </button>
+                                    {% else %}
+                                        {% if card.status == 'expired' %}
+                                            <span class="badge bg-danger">{{ card.get_status_display }}</span>
+                                        {% elif card.status == 'used_up' %}
+                                            <span class="badge bg-warning">{{ card.get_status_display }}</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ card.get_status_display }}</span>
+                                        {% endif %}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if card.card_type == 'time' and card.expire_date %}
+                                        {% if card.is_expired %}
+                                            <span class="text-danger">已过期</span>
+                                        {% else %}
+                                            {{ card.expire_date|date:"m-d H:i" }}
+                                        {% endif %}
+                                    {% elif card.card_type == 'count' %}
+                                        {% if card.remaining_count <= 0 %}
+                                            <span class="text-danger">已用完</span>
+                                        {% else %}
+                                            剩余 {{ card.remaining_count }} 次
+                                        {% endif %}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <small class="text-muted">
+                                        {{ card.allow_multi_device|yesno:"多设备,单设备" }}
+                                        ({{ card.max_devices }})
+                                    </small>
+                                </td>
+                                <td>{{ card.created_by.username }}</td>
+                                <td>{{ card.created_at|date:"m-d H:i" }}</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{% url 'cards:detail' card.pk %}" class="btn btn-outline-info" title="查看详情">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{% url 'cards:edit' card.pk %}" class="btn btn-outline-warning" title="编辑">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a href="{% url 'cards:delete' card.pk %}" class="btn btn-outline-danger" title="删除">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- 分页 -->
+            {% if is_paginated %}
+                <nav aria-label="卡密分页">
+                    <ul class="pagination justify-content-center mt-4">
+                        {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page=1{% if request.GET %}&{{ request.GET.urlencode }}{% endif %}">首页</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET %}&{{ request.GET.urlencode }}{% endif %}">上一页</a>
+                            </li>
+                        {% endif %}
+
+                        <li class="page-item active">
+                            <span class="page-link">
+                                第 {{ page_obj.number }} 页，共 {{ page_obj.paginator.num_pages }} 页
+                            </span>
+                        </li>
+
+                        {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET %}&{{ request.GET.urlencode }}{% endif %}">下一页</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET %}&{{ request.GET.urlencode }}{% endif %}">末页</a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            {% endif %}
+        {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">暂无卡密数据</h5>
+                <p class="text-muted">点击上方按钮创建您的第一个卡密</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+/* 快速筛选标签样式 */
+.quick-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem;
+    background: rgba(59, 130, 246, 0.05);
+    border-radius: 12px;
+    border: 1px solid rgba(59, 130, 246, 0.1);
+}
+
+.filter-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-right: 0.5rem;
+}
+
+.filter-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    color: var(--text-tertiary);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.filter-tag:hover {
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+    background: rgba(59, 130, 246, 0.1);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+}
+
+.filter-tag.active {
+    background: var(--primary-gradient);
+    border-color: var(--primary-color);
+    color: white;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.filter-tag.clear {
+    background: var(--danger-gradient);
+    border-color: var(--danger-color);
+    color: white;
+}
+
+.filter-tag.clear:hover {
+    background: var(--danger-color);
+    transform: translateY(-1px) scale(1.05);
+}
+
+/* 搜索表单动画 */
+.search-form {
+    animation: form-slide-up 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes form-slide-up {
+    0% {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 表格增强样式 */
+.table tbody tr {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+}
+
+.table tbody tr:hover {
+    background: rgba(59, 130, 246, 0.08);
+    transform: translateX(4px);
+}
+
+/* 操作按钮组优化 */
+.btn-group-sm .btn {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-group-sm .btn:hover {
+    transform: translateY(-2px) scale(1.1);
+    z-index: 2;
+}
+
+/* 响应式优化 */
+@media (max-width: 768px) {
+    .quick-filters {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .filter-label {
+        margin-bottom: 0.5rem;
+    }
+
+    .filter-tag {
+        margin-bottom: 0.25rem;
+    }
+
+    .table {
+        font-size: 13px;
+    }
+
+    .table th,
+    .table td {
+        padding: 8px 6px;
+    }
+
+    .btn-group-sm {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .btn-group-sm .btn {
+        border-radius: 6px !important;
+        margin-bottom: 2px;
+    }
+}
+
+/* 卡密复制功能样式 */
+.card-key-container {
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+}
+
+.card-key-container:hover {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+.card-key-text {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    cursor: pointer;
+}
+
+.copy-icon {
+    position: absolute;
+    right: -20px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    color: var(--text-muted);
+    opacity: 0;
+    transition: all 0.3s ease;
+    pointer-events: none;
+}
+
+.card-key-container:hover .copy-icon {
+    opacity: 1;
+    color: var(--primary-color);
+}
+
+.card-key-copied {
+    background: rgba(16, 185, 129, 0.1) !important;
+    border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
+.card-key-copied .copy-icon {
+    color: var(--success-color) !important;
+}
+</style>
+
+{% endblock %}
+
+{% block extra_js %}
+{% load static %}
+<script src="{% static 'js/status-toggle.js' %}"></script>
+<script>
+// 监听复选框变化，显示/隐藏批量操作工具栏
+document.addEventListener('change', function(e) {
+    if (e.target.matches('.batch-select-item, .batch-select-all')) {
+        updateBatchToolbar();
+    }
+});
+
+function updateBatchToolbar() {
+    const selectedItems = document.querySelectorAll('.batch-select-item:checked');
+    const toolbar = document.getElementById('batch-toolbar');
+    const countSpans = document.querySelectorAll('.selected-count');
+
+    if (selectedItems.length > 0) {
+        toolbar.style.display = 'block';
+        countSpans.forEach(span => span.textContent = selectedItems.length);
+    } else {
+        toolbar.style.display = 'none';
+    }
+}
+
+// 卡密复制功能
+function copyToClipboard(text) {
+    const container = event.target.closest('.card-key-container');
+    const icon = container.querySelector('.copy-icon');
+
+    // 尝试使用现代 Clipboard API
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(function() {
+            showCopySuccess(container, icon);
+        }).catch(function() {
+            fallbackCopyTextToClipboard(text, container, icon);
+        });
+    } else {
+        // 降级到传统方法
+        fallbackCopyTextToClipboard(text, container, icon);
+    }
+}
+
+function fallbackCopyTextToClipboard(text, container, icon) {
+    // 创建临时文本区域
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+
+    // 避免滚动到底部
+    textArea.style.top = "0";
+    textArea.style.left = "0";
+    textArea.style.position = "fixed";
+    textArea.style.opacity = "0";
+
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+
+    try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+            showCopySuccess(container, icon);
+        } else {
+            showCopyError();
+        }
+    } catch (err) {
+        showCopyError();
+    }
+
+    document.body.removeChild(textArea);
+}
+
+function showCopySuccess(container, icon) {
+    // 添加成功样式
+    container.classList.add('card-key-copied');
+    icon.classList.remove('fa-copy');
+    icon.classList.add('fa-check');
+
+    // 显示简短的成功消息
+    const originalTitle = container.title;
+    container.title = '已复制到剪贴板！';
+
+    setTimeout(() => {
+        container.classList.remove('card-key-copied');
+        icon.classList.remove('fa-check');
+        icon.classList.add('fa-copy');
+        container.title = originalTitle;
+    }, 1500);
+}
+
+function showCopyError() {
+    // 创建一个临时提示
+    const toast = document.createElement('div');
+    toast.innerHTML = `
+        <div style="
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--danger-color);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 9999;
+            font-size: 14px;
+            animation: slideIn 0.3s ease;
+        ">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            复制失败，请手动选择并复制
+        </div>
+    `;
+
+    document.body.appendChild(toast);
+
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
+</script>
+
+<script>
+function copyToClipboard(text) {
+    const container = event.target.closest('.card-key-container');
+    const icon = container.querySelector('.copy-icon');
+
+    // 尝试使用现代 Clipboard API
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(function() {
+            showCopySuccess(container, icon);
+        }).catch(function() {
+            fallbackCopyTextToClipboard(text, container, icon);
+        });
+    } else {
+        // 降级到传统方法
+        fallbackCopyTextToClipboard(text, container, icon);
+    }
+}
+
+function fallbackCopyTextToClipboard(text, container, icon) {
+    // 创建临时文本区域
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+
+    // 避免滚动到底部
+    textArea.style.top = "0";
+    textArea.style.left = "0";
+    textArea.style.position = "fixed";
+    textArea.style.opacity = "0";
+
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+
+    try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+            showCopySuccess(container, icon);
+        } else {
+            showCopyError();
+        }
+    } catch (err) {
+        showCopyError();
+    }
+
+    document.body.removeChild(textArea);
+}
+
+function showCopySuccess(container, icon) {
+    // 添加成功样式
+    container.classList.add('card-key-copied');
+    icon.classList.remove('fa-copy');
+    icon.classList.add('fa-check');
+
+    // 显示简短的成功消息
+    const originalTitle = container.title;
+    container.title = '已复制到剪贴板！';
+
+    setTimeout(() => {
+        container.classList.remove('card-key-copied');
+        icon.classList.remove('fa-check');
+        icon.classList.add('fa-copy');
+        container.title = originalTitle;
+    }, 1500);
+}
+
+function showCopyError() {
+    // 创建一个临时提示
+    const toast = document.createElement('div');
+    toast.innerHTML = `
+        <div style="
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--danger-color);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 9999;
+            font-size: 14px;
+            animation: slideIn 0.3s ease;
+        ">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            复制失败，请手动选择并复制
+        </div>
+    `;
+
+    document.body.appendChild(toast);
+
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
+
+// 添加动画样式
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+`;
+document.head.appendChild(style);
+</script>
+{% endblock %}

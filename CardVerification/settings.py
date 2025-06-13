@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-^iq$@6z+n=nhmdx0)9vx8w9o85ls=+%bz9p&qd79$3=+_#!jbo
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'testserver']
 
 
 # Application definition
@@ -37,6 +37,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
+    'accounts.apps.AccountsConfig',
+    'cards.apps.CardsConfig',
+    'api.apps.ApiConfig',
+    'dashboard.apps.DashboardConfig',
+    'settings.apps.SettingsConfig',
 ]
 
 MIDDLEWARE = [
@@ -45,6 +51,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'accounts.middleware.AdminAccessMiddleware',  # 添加admin访问控制中间件
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -62,6 +69,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'settings.context_processors.system_settings',
             ],
         },
     },
@@ -103,9 +111,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'zh-hans'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Shanghai'
 
 USE_I18N = True
 
@@ -116,8 +124,46 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',
+]
+
+# Media files
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Django REST Framework 配置
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20,
+}
+
+# 自定义用户模型
+AUTH_USER_MODEL = 'accounts.CustomUser'
+
+# 认证后端配置
+AUTHENTICATION_BACKENDS = [
+    'accounts.backends.CustomAuthenticationBackend',  # 前端登录认证
+    'django.contrib.auth.backends.ModelBackend',     # 默认认证后端（用于admin）
+]
+
+# Admin站点配置
+ADMIN_SITE_HEADER = 'Killua 卡密系统 - 超级管理员'
+ADMIN_SITE_TITLE = 'Killua 管理后台'
+ADMIN_INDEX_TITLE = '欢迎使用 Killua 卡密系统管理后台'
+
+# 登录相关配置
+LOGIN_URL = '/accounts/login/'
+LOGIN_REDIRECT_URL = '/dashboard/'
+LOGOUT_REDIRECT_URL = '/'

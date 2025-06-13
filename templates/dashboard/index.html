@@ -1,0 +1,551 @@
+{% extends 'base.html' %}
+
+{% block title %}控制面板 - Killua 卡密系统{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-5">
+    <div>
+        <h2 class="gradient-text mb-2">
+            <i class="fas fa-tachometer-alt me-2"></i>控制面板
+        </h2>
+        <p class="text-muted mb-0">实时监控您的卡密验证系统</p>
+    </div>
+    <div class="welcome-card card card-glass p-3">
+        <div class="d-flex align-items-center">
+            <div class="avatar-circle me-3">
+                <i class="fas fa-user"></i>
+            </div>
+            <div>
+                <h6 class="mb-0">欢迎回来</h6>
+                <small class="text-muted">{{ user.username }}</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.welcome-card {
+    border: none;
+    backdrop-filter: blur(10px);
+}
+
+.avatar-circle {
+    width: 40px;
+    height: 40px;
+    background: var(--primary-gradient);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.2rem;
+}
+</style>
+
+<!-- 统计卡片 -->
+<div class="row mb-5 animate-on-scroll">
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card card-glass animate-on-scroll">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title text-muted mb-3">总卡密数</h6>
+                        <h3 class="mb-0">{{ total_cards }}</h3>
+                    </div>
+                    <div class="stat-icon">
+                        <i class="fas fa-credit-card fa-2x text-primary"></i>
+                    </div>
+                </div>
+                <div class="progress mt-3" style="height: 6px;">
+                    <div class="progress-bar bg-primary" role="progressbar" style="width: 100%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card success card-glass animate-on-scroll">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title text-muted mb-3">活跃卡密</h6>
+                        <h3 class="mb-0">{{ active_cards }}</h3>
+                    </div>
+                    <div class="stat-icon">
+                        <i class="fas fa-check-circle fa-2x text-success"></i>
+                    </div>
+                </div>
+                <div class="progress mt-3" style="height: 6px;">
+                    <div class="progress-bar bg-success" role="progressbar"
+                         style="width: {% if total_cards > 0 %}{{ active_cards|floatformat:0 }}{% else %}0{% endif %}%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card info card-glass animate-on-scroll">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title text-muted mb-3">API密钥</h6>
+                        <h3 class="mb-0">{{ active_api_keys }}/{{ total_api_keys }}</h3>
+                    </div>
+                    <div class="stat-icon">
+                        <i class="fas fa-key fa-2x text-info"></i>
+                    </div>
+                </div>
+                <div class="progress mt-3" style="height: 6px;">
+                    <div class="progress-bar bg-info" role="progressbar"
+                         style="width: {% if total_api_keys > 0 %}{{ active_api_keys|floatformat:0 }}{% else %}0{% endif %}%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if user.is_superuser %}
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card warning card-glass animate-on-scroll">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title text-muted mb-3">待审批用户</h6>
+                        <h3 class="mb-0">{{ pending_users }}</h3>
+                    </div>
+                    <div class="stat-icon">
+                        <i class="fas fa-user-clock fa-2x text-warning"></i>
+                    </div>
+                </div>
+                <div class="progress mt-3" style="height: 6px;">
+                    <div class="progress-bar bg-warning" role="progressbar" style="width: 100%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.stat-icon {
+    background: rgba(255, 255, 255, 0.1);
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(5px);
+}
+
+.progress {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    overflow: hidden;
+}
+</style>
+
+<!-- 今日统计和快速操作 -->
+<div class="row mb-5">
+    <div class="col-md-6 mb-4">
+        <div class="card card-glass">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-calendar-day me-2"></i>今日统计</h5>
+            </div>
+            <div class="card-body p-4">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <div class="today-stat">
+                            <div class="today-icon mb-3">
+                                <i class="fas fa-check-double text-primary"></i>
+                            </div>
+                            <h4 class="text-primary mb-2">{{ today_verifications }}</h4>
+                            <div class="text-muted">验证次数</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="today-stat">
+                            <div class="today-icon mb-3">
+                                <i class="fas fa-code text-success"></i>
+                            </div>
+                            <h4 class="text-success mb-2">{{ today_api_calls }}</h4>
+                            <div class="text-muted">API调用</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-4">
+        <div class="card card-glass">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-bolt me-2"></i>快速操作</h5>
+            </div>
+            <div class="card-body p-4">
+                <div class="quick-actions">
+                    <a href="{% url 'cards:create' %}" class="quick-action-btn">
+                        <div class="quick-action-icon">
+                            <i class="fas fa-plus"></i>
+                        </div>
+                        <div class="quick-action-text">
+                            <h6>创建新卡密</h6>
+                            <small class="text-muted">添加单个卡密</small>
+                        </div>
+                    </a>
+
+                    <a href="{% url 'cards:batch_create' %}" class="quick-action-btn">
+                        <div class="quick-action-icon success">
+                            <i class="fas fa-layer-group"></i>
+                        </div>
+                        <div class="quick-action-text">
+                            <h6>批量生成卡密</h6>
+                            <small class="text-muted">一次创建多个卡密</small>
+                        </div>
+                    </a>
+
+                    <a href="{% url 'api:key_create' %}" class="quick-action-btn">
+                        <div class="quick-action-icon info">
+                            <i class="fas fa-key"></i>
+                        </div>
+                        <div class="quick-action-text">
+                            <h6>创建API密钥</h6>
+                            <small class="text-muted">用于程序接口调用</small>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.today-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    font-size: 1.5rem;
+    backdrop-filter: blur(5px);
+}
+
+.today-stat {
+    padding: 1rem;
+    border-radius: 16px;
+    transition: all 0.3s ease;
+}
+
+.today-stat:hover {
+    background: rgba(255, 255, 255, 0.05);
+    transform: translateY(-5px);
+}
+
+.quick-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.quick-action-btn {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    color: inherit;
+}
+
+.quick-action-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    transform: translateX(5px);
+}
+
+.quick-action-icon {
+    width: 45px;
+    height: 45px;
+    border-radius: 12px;
+    background: var(--primary-gradient);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.quick-action-icon.success {
+    background: var(--success-gradient);
+}
+
+.quick-action-icon.info {
+    background: var(--accent-gradient);
+}
+
+.quick-action-text h6 {
+    margin-bottom: 0.25rem;
+}
+</style>
+
+<!-- 图表和最近记录 -->
+<div class="row">
+    <div class="col-lg-8 mb-4">
+        <div class="card card-glass">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-area me-2"></i>验证趋势（最近7天）
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="verificationChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4 mb-4">
+        <div class="card card-glass">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-history me-2"></i>最近验证记录
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="recent-logs">
+                    {% for log in recent_logs %}
+                        <div class="log-item">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="log-info">
+                                    <div class="log-key">{{ log.card.card_key|slice:":8" }}***</div>
+                                    <div class="log-ip">
+                                        <i class="fas fa-map-marker-alt me-1"></i>
+                                        {{ log.ip_address }}
+                                    </div>
+                                    <div class="log-time">
+                                        <i class="fas fa-clock me-1"></i>
+                                        {{ log.verification_time|timesince }}前
+                                    </div>
+                                </div>
+                                <div class="log-status">
+                                    {% if log.success %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check me-1"></i>成功
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-times me-1"></i>失败
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <div class="empty-logs">
+                            <div class="empty-icon">
+                                <i class="fas fa-inbox"></i>
+                            </div>
+                            <div class="empty-text">暂无验证记录</div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.chart-container {
+    position: relative;
+    height: 350px;
+    padding: 1rem;
+}
+
+.recent-logs {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.log-item {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border-secondary);
+    transition: all 0.3s ease;
+}
+
+.log-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.log-item:last-child {
+    border-bottom: none;
+}
+
+.log-key {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.log-ip, .log-time {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 0.25rem;
+}
+
+.empty-logs {
+    text-align: center;
+    padding: 3rem 1rem;
+}
+
+.empty-icon {
+    font-size: 3rem;
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+}
+
+.empty-text {
+    color: var(--text-muted);
+    font-size: 1.1rem;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 验证趋势图表
+const ctx = document.getElementById('verificationChart').getContext('2d');
+const verificationData = {{ recent_verifications|safe }};
+
+const labels = verificationData.map(item => {
+    const date = new Date(item.verification_time__date);
+    return (date.getMonth() + 1) + '-' + date.getDate();
+});
+const data = verificationData.map(item => item.count);
+
+// 创建渐变
+const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+gradient.addColorStop(0, 'rgba(59, 130, 246, 0.4)');
+gradient.addColorStop(1, 'rgba(59, 130, 246, 0.05)');
+
+new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: labels,
+        datasets: [{
+            label: '验证次数',
+            data: data,
+            borderColor: '#3b82f6',
+            backgroundColor: gradient,
+            borderWidth: 3,
+            pointBackgroundColor: '#3b82f6',
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 2,
+            pointRadius: 6,
+            pointHoverRadius: 8,
+            tension: 0.4,
+            fill: true
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false
+            },
+            tooltip: {
+                backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                titleColor: '#f8fafc',
+                bodyColor: '#e2e8f0',
+                borderColor: '#3b82f6',
+                borderWidth: 1,
+                cornerRadius: 12,
+                displayColors: false,
+                callbacks: {
+                    title: function(context) {
+                        return '日期: ' + context[0].label;
+                    },
+                    label: function(context) {
+                        return '验证次数: ' + context.parsed.y;
+                    }
+                }
+            }
+        },
+        scales: {
+            x: {
+                grid: {
+                    display: false
+                },
+                ticks: {
+                    color: '#94a3b8',
+                    font: {
+                        size: 12,
+                        weight: '500'
+                    }
+                }
+            },
+            y: {
+                beginAtZero: true,
+                grid: {
+                    color: 'rgba(148, 163, 184, 0.1)',
+                    borderDash: [5, 5]
+                },
+                ticks: {
+                    color: '#94a3b8',
+                    font: {
+                        size: 12,
+                        weight: '500'
+                    }
+                }
+            }
+        },
+        interaction: {
+            intersect: false,
+            mode: 'index'
+        },
+        animation: {
+            duration: 2000,
+            easing: 'easeInOutQuart'
+        }
+    }
+});
+
+// 统计数字动画
+function animateValue(element, start, end, duration) {
+    let startTimestamp = null;
+    const step = (timestamp) => {
+        if (!startTimestamp) startTimestamp = timestamp;
+        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+        const value = Math.floor(progress * (end - start) + start);
+        element.innerHTML = value;
+        if (progress < 1) {
+            window.requestAnimationFrame(step);
+        }
+    };
+    window.requestAnimationFrame(step);
+}
+
+// 页面加载后启动动画
+document.addEventListener('DOMContentLoaded', function() {
+    // 统计卡片数字动画
+    const statNumbers = document.querySelectorAll('.stat-card h3');
+    statNumbers.forEach(element => {
+        const finalValue = parseInt(element.textContent);
+        if (!isNaN(finalValue)) {
+            animateValue(element, 0, finalValue, 1500);
+        }
+    });
+
+    // 今日统计数字动画
+    const todayNumbers = document.querySelectorAll('.today-stat h4');
+    todayNumbers.forEach(element => {
+        const finalValue = parseInt(element.textContent);
+        if (!isNaN(finalValue)) {
+            animateValue(element, 0, finalValue, 1200);
+        }
+    });
+});
+</script>
+{% endblock %}

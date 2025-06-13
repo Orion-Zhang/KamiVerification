@@ -1,0 +1,49 @@
+# ===== 核心框架 =====
+# Django 核心框架
+Django==5.2.3
+
+# Django REST Framework - API 构建
+djangorestframework==3.16.0
+
+# ===== 数据处理 =====
+# 数据分析和处理
+pandas==2.3.0
+numpy==2.3.0
+
+# Excel 文件处理
+openpyxl==3.1.5
+
+# ===== 图像处理 =====
+# 图像处理库
+Pillow==11.2.1
+
+# ===== API 文档 =====
+# Swagger API 文档生成
+drf-yasg==1.21.10
+
+# ===== HTTP 和网络 =====
+# HTTP 请求库
+requests==2.32.4
+
+# ===== 生产环境服务器 =====
+# WSGI HTTP 服务器
+gunicorn==23.0.0
+
+# PostgreSQL 数据库适配器
+psycopg2-binary==2.9.10
+
+# Redis 客户端
+redis==5.2.1
+
+# ===== 其他工具 =====
+# YAML 配置文件支持
+PyYAML==6.0.2
+
+# 时区数据
+pytz==2025.2
+
+# 环境变量管理
+python-decouple==3.8
+
+# 跨域资源共享
+django-cors-headers==4.6.0

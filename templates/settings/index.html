@@ -1,0 +1,382 @@
+{% extends 'base.html' %}
+
+{% block title %}系统设置 - Killua 卡密系统{% endblock %}
+
+{% block extra_css %}
+<style>
+.image-upload-area {
+    border: 2px dashed var(--glass-border);
+    border-radius: 12px;
+    padding: 2rem;
+    text-align: center;
+    background: var(--glass-bg);
+    transition: all var(--transition-normal) var(--ease-out);
+    cursor: pointer;
+}
+
+.image-upload-area:hover {
+    border-color: var(--primary-color);
+    background: rgba(59, 130, 246, 0.05);
+}
+
+.image-upload-area.dragover {
+    border-color: var(--primary-color);
+    background: rgba(59, 130, 246, 0.1);
+    transform: scale(1.02);
+}
+
+.image-preview {
+    max-width: 200px;
+    max-height: 150px;
+    border-radius: 8px;
+    box-shadow: var(--shadow-md);
+}
+
+.color-preview {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    border: 2px solid var(--glass-border);
+    display: inline-block;
+    vertical-align: middle;
+    margin-left: 10px;
+}
+
+.settings-section {
+    margin-bottom: 2rem;
+}
+
+.settings-section .card-header {
+    background: rgba(59, 130, 246, 0.1);
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.upload-progress {
+    display: none;
+    margin-top: 1rem;
+}
+
+.image-actions {
+    margin-top: 1rem;
+}
+
+.btn-delete-image {
+    background: var(--danger-gradient);
+    border: none;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-5">
+    <div>
+        <h2 class="gradient-text mb-2">
+            <i class="fas fa-cog me-2"></i>系统设置
+        </h2>
+        <p class="text-muted mb-0">自定义您的网站外观和功能</p>
+    </div>
+</div>
+
+<form method="post" enctype="multipart/form-data" id="settingsForm">
+    {% csrf_token %}
+    
+    <!-- 网站基本信息 -->
+    <div class="settings-section">
+        <div class="card card-glass">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>网站基本信息
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">{{ form.site_name.label }}</label>
+                            {{ form.site_name }}
+                            {% if form.site_name.errors %}
+                                <div class="text-danger small mt-1">{{ form.site_name.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">{{ form.site_subtitle.label }}</label>
+                            {{ form.site_subtitle }}
+                            {% if form.site_subtitle.errors %}
+                                <div class="text-danger small mt-1">{{ form.site_subtitle.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">{{ form.site_description.label }}</label>
+                    {{ form.site_description }}
+                    {% if form.site_description.errors %}
+                        <div class="text-danger small mt-1">{{ form.site_description.errors }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 图片设置 -->
+    <div class="settings-section">
+        <div class="card card-glass">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-image me-2"></i>图片设置
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <!-- 英雄区域图片 -->
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label class="form-label">英雄区域图片</label>
+                            <div class="image-upload-area" data-type="hero">
+                                {% if settings.hero_image %}
+                                    <img src="{{ settings.hero_image.url }}" alt="英雄区域图片" class="image-preview mb-3">
+                                    <div class="image-actions">
+                                        <button type="button" class="btn btn-delete-image" data-type="hero">
+                                            <i class="fas fa-trash me-1"></i>删除
+                                        </button>
+                                    </div>
+                                {% else %}
+                                    <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                                    <p class="text-muted mb-0">点击或拖拽上传图片</p>
+                                    <small class="text-muted">推荐尺寸: 600x400px</small>
+                                {% endif %}
+                            </div>
+                            <input type="file" class="d-none" id="heroImageInput" accept="image/*">
+                        </div>
+                    </div>
+                    
+                    <!-- Logo图片 -->
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label class="form-label">Logo图片</label>
+                            <div class="image-upload-area" data-type="logo">
+                                {% if settings.logo_image %}
+                                    <img src="{{ settings.logo_image.url }}" alt="Logo图片" class="image-preview mb-3">
+                                    <div class="image-actions">
+                                        <button type="button" class="btn btn-delete-image" data-type="logo">
+                                            <i class="fas fa-trash me-1"></i>删除
+                                        </button>
+                                    </div>
+                                {% else %}
+                                    <i class="fas fa-image fa-3x text-muted mb-3"></i>
+                                    <p class="text-muted mb-0">点击或拖拽上传Logo</p>
+                                    <small class="text-muted">推荐尺寸: 200x200px</small>
+                                {% endif %}
+                            </div>
+                            <input type="file" class="d-none" id="logoImageInput" accept="image/*">
+                        </div>
+                    </div>
+                    
+                    <!-- 网站图标 -->
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label class="form-label">网站图标</label>
+                            <div class="image-upload-area" data-type="favicon">
+                                {% if settings.favicon %}
+                                    <img src="{{ settings.favicon.url }}" alt="网站图标" class="image-preview mb-3">
+                                    <div class="image-actions">
+                                        <button type="button" class="btn btn-delete-image" data-type="favicon">
+                                            <i class="fas fa-trash me-1"></i>删除
+                                        </button>
+                                    </div>
+                                {% else %}
+                                    <i class="fas fa-star fa-3x text-muted mb-3"></i>
+                                    <p class="text-muted mb-0">点击或拖拽上传图标</p>
+                                    <small class="text-muted">推荐尺寸: 32x32px</small>
+                                {% endif %}
+                            </div>
+                            <input type="file" class="d-none" id="faviconInput" accept=".ico,.png">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主题颜色 -->
+    <div class="settings-section">
+        <div class="card card-glass">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-palette me-2"></i>主题颜色
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">{{ form.primary_color.label }}</label>
+                            <div class="d-flex align-items-center">
+                                {{ form.primary_color }}
+                                <div class="color-preview" id="primaryColorPreview" style="background-color: {{ form.primary_color.value|default:'#3b82f6' }}"></div>
+                            </div>
+                            {% if form.primary_color.errors %}
+                                <div class="text-danger small mt-1">{{ form.primary_color.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">{{ form.accent_color.label }}</label>
+                            <div class="d-flex align-items-center">
+                                {{ form.accent_color }}
+                                <div class="color-preview" id="accentColorPreview" style="background-color: {{ form.accent_color.value|default:'#06b6d4' }}"></div>
+                            </div>
+                            {% if form.accent_color.errors %}
+                                <div class="text-danger small mt-1">{{ form.accent_color.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 保存按钮 -->
+    <div class="text-center">
+        <button type="submit" class="btn btn-primary btn-lg">
+            <i class="fas fa-save me-2"></i>保存设置
+        </button>
+        <a href="{% url 'dashboard:index' %}" class="btn btn-outline-secondary btn-lg ms-3">
+            <i class="fas fa-arrow-left me-2"></i>返回控制面板
+        </a>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 图片上传处理
+    const uploadAreas = document.querySelectorAll('.image-upload-area');
+    
+    uploadAreas.forEach(area => {
+        const type = area.dataset.type;
+        const input = document.getElementById(type + 'ImageInput') || document.getElementById(type + 'Input');
+        
+        // 点击上传
+        area.addEventListener('click', () => {
+            if (input) input.click();
+        });
+        
+        // 拖拽上传
+        area.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            area.classList.add('dragover');
+        });
+        
+        area.addEventListener('dragleave', () => {
+            area.classList.remove('dragover');
+        });
+        
+        area.addEventListener('drop', (e) => {
+            e.preventDefault();
+            area.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                uploadImage(files[0], type);
+            }
+        });
+        
+        // 文件选择
+        if (input) {
+            input.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    uploadImage(e.target.files[0], type);
+                }
+            });
+        }
+    });
+    
+    // 删除图片
+    document.querySelectorAll('.btn-delete-image').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const type = btn.dataset.type;
+            deleteImage(type);
+        });
+    });
+    
+    // 颜色预览更新
+    const primaryColorInput = document.getElementById('{{ form.primary_color.id_for_label }}');
+    const accentColorInput = document.getElementById('{{ form.accent_color.id_for_label }}');
+    
+    if (primaryColorInput) {
+        primaryColorInput.addEventListener('input', (e) => {
+            document.getElementById('primaryColorPreview').style.backgroundColor = e.target.value;
+        });
+    }
+    
+    if (accentColorInput) {
+        accentColorInput.addEventListener('input', (e) => {
+            document.getElementById('accentColorPreview').style.backgroundColor = e.target.value;
+        });
+    }
+});
+
+function uploadImage(file, type) {
+    const formData = new FormData();
+    formData.append('image', file);
+    formData.append('type', type);
+    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    
+    fetch('{% url "settings:upload_image" %}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload(); // 重新加载页面显示新图片
+        } else {
+            alert('上传失败: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('上传失败，请重试');
+    });
+}
+
+function deleteImage(type) {
+    if (!confirm('确定要删除这张图片吗？')) return;
+    
+    const formData = new FormData();
+    formData.append('type', type);
+    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    
+    fetch('{% url "settings:delete_image" %}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload(); // 重新加载页面
+        } else {
+            alert('删除失败: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('删除失败，请重试');
+    });
+}
+</script>
+{% endblock %}

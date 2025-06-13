@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Killua 在线卡密验证系统{% endblock %}</title>
+
+    <!-- Preload fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/custom.css' %}">
+
+    <!-- Meta tags for SEO and social sharing -->
+    <meta name="description" content="现代化的在线卡密验证系统，提供安全可靠的软件授权解决方案">
+    <meta name="keywords" content="卡密验证,软件授权,API接口,在线验证">
+    <meta name="author" content="Killua">
+
+    <!-- CSRF Token for AJAX requests -->
+    <meta name="csrf-token" content="{{ csrf_token }}">
+
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar navbar-expand-lg fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'home' %}">
+                <i class="fas fa-shield-alt me-2"></i>Killua 卡密系统
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'home' %}">首页</a>
+                    </li>
+                    {% if user.is_authenticated %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'dashboard:index' %}">控制面板</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'cards:list' %}">卡密管理</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'api:key_list' %}">API管理</a>
+                        </li>
+                        {% if user.is_superuser %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'settings:index' %}">系统设置</a>
+                            </li>
+                        {% endif %}
+                    {% endif %}
+                </ul>
+                
+                <ul class="navbar-nav">
+                    {% if user.is_authenticated %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-user me-1"></i>{{ user.username }}
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{% url 'accounts:profile' %}">个人资料</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <form method="post" action="{% url 'accounts:logout' %}" style="display: inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="dropdown-item" style="border: none; background: none; width: 100%; text-align: left; cursor: pointer;">
+                                            <i class="fas fa-sign-out-alt me-2"></i>退出登录
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'accounts:login' %}">登录</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'accounts:register' %}">注册</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 消息提示 -->
+    {% if messages %}
+        <div class="container mt-3">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <!-- 主要内容容器 -->
+    <div class="main-wrapper">
+        <!-- 主要内容 -->
+        <main class="container my-4 page-content" style="margin-top: 120px !important;">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <!-- 固定页脚 -->
+    <footer class="footer-fixed">
+        <div class="container text-center">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <p class="mb-0 footer-text">
+                        <i class="fas fa-shield-alt me-2"></i>
+                        &copy; {% now "Y" %} Killua 卡密验证系统 - All Rights Reserved
+                    </p>
+                </div>
+                <div class="col-md-6">
+                    <p class="mb-0 footer-text">
+                        <i class="fas fa-code me-2"></i>
+                        Powered by Django & Bootstrap
+                    </p>
+                </div>
+            </div>
+            <!-- 社交链接 -->
+            <div class="row mt-2">
+                <div class="col-12">
+                    <div class="footer-social">
+                        {% if settings.github_url %}
+                            <a href="{{ settings.github_url }}" target="_blank" class="footer-link">
+                                <i class="fab fa-github"></i>
+                            </a>
+                        {% endif %}
+                        {% if settings.website_url %}
+                            <a href="{{ settings.website_url }}" target="_blank" class="footer-link">
+                                <i class="fas fa-globe"></i>
+                            </a>
+                        {% endif %}
+                        {% if settings.contact_email %}
+                            <a href="mailto:{{ settings.contact_email }}" class="footer-link">
+                                <i class="fas fa-envelope"></i>
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 滚动到顶部按钮 -->
+    <button class="scroll-to-top" id="scrollToTop" aria-label="回到顶部">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- 自定义JavaScript -->
+    <script>
+        // 滚动到顶部功能
+        const scrollToTopBtn = document.getElementById('scrollToTop');
+
+        window.addEventListener('scroll', () => {
+            if (window.pageYOffset > 300) {
+                scrollToTopBtn.classList.add('visible');
+            } else {
+                scrollToTopBtn.classList.remove('visible');
+            }
+        });
+
+        scrollToTopBtn.addEventListener('click', () => {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+
+        // 增强的页面加载和交互动画
+        document.addEventListener('DOMContentLoaded', () => {
+            // 页面淡入效果
+            document.body.style.opacity = '0';
+            document.body.style.transition = 'opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1)';
+
+            setTimeout(() => {
+                document.body.style.opacity = '1';
+            }, 100);
+
+            // 滚动触发动画
+            const observerOptions = {
+                threshold: 0.1,
+                rootMargin: '0px 0px -50px 0px'
+            };
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('animated');
+                    }
+                });
+            }, observerOptions);
+
+            // 观察所有需要动画的元素
+            document.querySelectorAll('.animate-on-scroll').forEach(el => {
+                observer.observe(el);
+            });
+
+            // 为卡片添加延迟动画
+            document.querySelectorAll('.card').forEach((card, index) => {
+                card.classList.add('card-animate');
+                card.style.animationDelay = `${index * 0.1}s`;
+            });
+
+            // 按钮点击反馈效果
+            document.querySelectorAll('.btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    this.classList.add('btn-click-effect');
+                    setTimeout(() => {
+                        this.classList.remove('btn-click-effect');
+                    }, 200);
+                });
+            });
+
+            // 表单验证增强
+            document.querySelectorAll('.form-control').forEach(input => {
+                input.addEventListener('blur', function() {
+                    if (this.value.trim() !== '') {
+                        this.classList.add('has-value');
+                    } else {
+                        this.classList.remove('has-value');
+                    }
+                });
+
+                input.addEventListener('focus', function() {
+                    this.classList.remove('is-invalid');
+                });
+            });
+
+            // 表格行点击效果
+            document.querySelectorAll('.table tbody tr').forEach(row => {
+                row.addEventListener('click', function() {
+                    this.classList.add('table-row-animate');
+                    setTimeout(() => {
+                        this.classList.remove('table-row-animate');
+                    }, 600);
+                });
+            });
+
+            // 工具提示初始化
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl, {
+                    animation: true,
+                    delay: { show: 300, hide: 100 }
+                });
+            });
+
+            // 自动隐藏消息提示
+            setTimeout(() => {
+                document.querySelectorAll('.alert').forEach(alert => {
+                    if (alert.classList.contains('alert-success')) {
+                        const bsAlert = new bootstrap.Alert(alert);
+                        setTimeout(() => {
+                            bsAlert.close();
+                        }, 3000);
+                    }
+                });
+            }, 1000);
+        });
+
+        // 增强的导航栏滚动效果
+        let lastScrollTop = 0;
+        const navbar = document.querySelector('.navbar');
+        let ticking = false;
+
+        function updateNavbar() {
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+
+            if (scrollTop > lastScrollTop && scrollTop > 100) {
+                navbar.style.transform = 'translateY(-100%)';
+                navbar.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+            } else {
+                navbar.style.transform = 'translateY(0)';
+                navbar.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+            }
+
+            // 添加滚动时的背景模糊效果
+            if (scrollTop > 50) {
+                navbar.style.backdropFilter = 'blur(30px)';
+                navbar.style.background = 'rgba(30, 41, 59, 0.9)';
+            } else {
+                navbar.style.backdropFilter = 'blur(20px)';
+                navbar.style.background = 'rgba(30, 41, 59, 0.8)';
+            }
+
+            lastScrollTop = scrollTop;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', () => {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        });
+
+        // 鼠标跟随效果（可选）
+        document.addEventListener('mousemove', (e) => {
+            const cursor = document.querySelector('.cursor');
+            if (cursor) {
+                cursor.style.left = e.clientX + 'px';
+                cursor.style.top = e.clientY + 'px';
+            }
+        });
+
+        // 添加页面切换动画
+        document.querySelectorAll('a[href^="/"]').forEach(link => {
+            link.addEventListener('click', (e) => {
+                if (link.target !== '_blank') {
+                    e.preventDefault();
+                    document.body.style.opacity = '0';
+                    setTimeout(() => {
+                        window.location.href = link.href;
+                    }, 300);
+                }
+            });
+        });
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

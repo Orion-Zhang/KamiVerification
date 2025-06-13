@@ -1,0 +1,273 @@
+{% extends 'base.html' %}
+
+{% block title %}批量生成卡密 - Killua 卡密系统{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card card-glass">
+            <div class="card-header">
+                <h4 class="mb-0 gradient-text">
+                    <i class="fas fa-layer-group me-2"></i>批量生成卡密
+                </h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info alert-glass">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>提示：</strong>批量生成功能可以一次性创建多个相同配置的卡密，适用于大量发放的场景。
+                </div>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.card_type.id_for_label }}" class="form-label">卡密类型 *</label>
+                                {{ form.card_type }}
+                                {% if form.card_type.errors %}
+                                    <div class="text-danger small mt-1">{{ form.card_type.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.count.id_for_label }}" class="form-label">生成数量 *</label>
+                                {{ form.count }}
+                                {% if form.count.errors %}
+                                    <div class="text-danger small mt-1">{{ form.count.errors }}</div>
+                                {% endif %}
+                                <small class="form-text text-muted">最多可生成1000个卡密</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 时间卡设置 -->
+                    <div id="time-card-settings" class="card card-glass mb-3" style="display: none;">
+                        <div class="card-header">
+                            <h6 class="mb-0 text-primary">
+                                <i class="fas fa-clock me-2"></i>时间卡设置
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="{{ form.valid_days.id_for_label }}" class="form-label">有效天数</label>
+                                {{ form.valid_days }}
+                                {% if form.valid_days.errors %}
+                                    <div class="text-danger small mt-1">{{ form.valid_days.errors }}</div>
+                                {% endif %}
+                                <small class="form-text text-muted">设置卡密的有效天数，从首次使用开始计算</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 次数卡设置 -->
+                    <div id="count-card-settings" class="card card-glass mb-3" style="display: none;">
+                        <div class="card-header">
+                            <h6 class="mb-0 text-success">
+                                <i class="fas fa-hashtag me-2"></i>次数卡设置
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="{{ form.total_count.id_for_label }}" class="form-label">总使用次数</label>
+                                {{ form.total_count }}
+                                {% if form.total_count.errors %}
+                                    <div class="text-danger small mt-1">{{ form.total_count.errors }}</div>
+                                {% endif %}
+                                <small class="form-text text-muted">设置卡密可以使用的总次数</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 设备绑定设置 -->
+                    <div class="card card-glass mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0 text-info">
+                                <i class="fas fa-mobile-alt me-2"></i>设备绑定设置
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <div class="form-check">
+                                            {{ form.allow_multi_device }}
+                                            <label class="form-check-label" for="{{ form.allow_multi_device.id_for_label }}">
+                                                允许多设备使用
+                                            </label>
+                                        </div>
+                                        <small class="form-text text-muted">是否允许同一卡密在多个设备上使用</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="{{ form.max_devices.id_for_label }}" class="form-label">最大设备数</label>
+                                        {{ form.max_devices }}
+                                        {% if form.max_devices.errors %}
+                                            <div class="text-danger small mt-1">{{ form.max_devices.errors }}</div>
+                                        {% endif %}
+                                        <small class="form-text text-muted">限制可绑定的最大设备数量</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 预览信息 -->
+                    <div class="card card-glass mb-3" style="border: 1px solid rgba(251, 191, 36, 0.3); background: rgba(251, 191, 36, 0.05);">
+                        <div class="card-body">
+                            <h6 class="card-title text-warning">
+                                <i class="fas fa-eye me-2"></i>生成预览
+                            </h6>
+                            <div id="preview-info">
+                                <p class="mb-1">将生成 <strong id="preview-count">0</strong> 个 <strong id="preview-type">-</strong></p>
+                                <p class="mb-0 text-muted" id="preview-details">请选择卡密类型和数量</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'cards:list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>返回列表
+                        </a>
+                        <button type="submit" class="btn btn-success" id="submit-btn" disabled>
+                            <i class="fas fa-magic me-2"></i>开始生成
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const cardTypeSelect = document.getElementById('id_card_type');
+    const countInput = document.getElementById('id_count');
+    const validDaysInput = document.getElementById('id_valid_days');
+    const totalCountInput = document.getElementById('id_total_count');
+    const allowMultiDeviceInput = document.getElementById('id_allow_multi_device');
+    const maxDevicesInput = document.getElementById('id_max_devices');
+
+    const timeCardSettings = document.getElementById('time-card-settings');
+    const countCardSettings = document.getElementById('count-card-settings');
+    const submitBtn = document.getElementById('submit-btn');
+
+    const previewCount = document.getElementById('preview-count');
+    const previewType = document.getElementById('preview-type');
+    const previewDetails = document.getElementById('preview-details');
+
+    // 检查元素是否存在
+    if (!cardTypeSelect || !countInput || !submitBtn) {
+        console.error('批量生成表单元素未找到', {
+            cardTypeSelect: !!cardTypeSelect,
+            countInput: !!countInput,
+            submitBtn: !!submitBtn
+        });
+        return;
+    }
+
+    console.log('批量生成表单初始化成功');
+    
+    function updatePreview() {
+        const cardType = cardTypeSelect.value;
+        const count = countInput.value;
+        
+        previewCount.textContent = count || '0';
+        
+        if (cardType === 'time') {
+            previewType.textContent = '时间卡';
+            const days = validDaysInput.value;
+            if (days) {
+                previewDetails.textContent = `每个卡密有效期 ${days} 天`;
+            } else {
+                previewDetails.textContent = '请设置有效天数';
+            }
+        } else if (cardType === 'count') {
+            previewType.textContent = '次数卡';
+            const totalCount = totalCountInput.value;
+            if (totalCount) {
+                previewDetails.textContent = `每个卡密可使用 ${totalCount} 次`;
+            } else {
+                previewDetails.textContent = '请设置使用次数';
+            }
+        } else {
+            previewType.textContent = '-';
+            previewDetails.textContent = '请选择卡密类型';
+        }
+        
+        // 检查是否可以提交
+        let canSubmit = false;
+
+        if (cardType && count && parseInt(count) > 0) {
+            if (cardType === 'time') {
+                canSubmit = validDaysInput && validDaysInput.value && parseInt(validDaysInput.value) > 0;
+            } else if (cardType === 'count') {
+                canSubmit = totalCountInput && totalCountInput.value && parseInt(totalCountInput.value) > 0;
+            }
+        }
+
+        console.log('表单验证:', {
+            cardType: cardType,
+            count: count,
+            canSubmit: canSubmit,
+            validDays: validDaysInput ? validDaysInput.value : 'N/A',
+            totalCount: totalCountInput ? totalCountInput.value : 'N/A'
+        });
+
+        submitBtn.disabled = !canSubmit;
+    }
+    
+    function toggleCardSettings() {
+        const cardType = cardTypeSelect.value;
+        
+        if (cardType === 'time') {
+            timeCardSettings.style.display = 'block';
+            countCardSettings.style.display = 'none';
+        } else if (cardType === 'count') {
+            timeCardSettings.style.display = 'none';
+            countCardSettings.style.display = 'block';
+        } else {
+            timeCardSettings.style.display = 'none';
+            countCardSettings.style.display = 'none';
+        }
+        
+        updatePreview();
+    }
+    
+    // 表单提交处理
+    const form = document.querySelector('form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            if (submitBtn.disabled) {
+                e.preventDefault();
+                alert('请完善表单信息后再提交');
+                return false;
+            }
+
+            // 显示加载状态
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>正在生成...';
+
+            console.log('表单提交中...');
+        });
+    }
+
+    // 事件监听
+    cardTypeSelect.addEventListener('change', toggleCardSettings);
+    countInput.addEventListener('input', updatePreview);
+    if (validDaysInput) {
+        validDaysInput.addEventListener('input', updatePreview);
+    }
+    if (totalCountInput) {
+        totalCountInput.addEventListener('input', updatePreview);
+    }
+
+    // 初始化
+    toggleCardSettings();
+});
+</script>
+{% endblock %}
