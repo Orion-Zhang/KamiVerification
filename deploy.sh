@@ -84,18 +84,27 @@ check_docker() {
 # 检查环境变量文件
 check_env_file() {
     log_header "检查环境配置"
-    
-    if [ ! -f ".env" ]; then
-        log_warning ".env文件不存在，从模板创建..."
-        if [ -f ".env.example" ]; then
+
+    # 根据环境选择配置文件
+    local env_file=".env"
+    if [ "$ENVIRONMENT" = "prod" ] && [ -f ".env.production" ]; then
+        env_file=".env.production"
+        log_info "使用生产环境配置文件: $env_file"
+    fi
+
+    if [ ! -f "$env_file" ]; then
+        log_warning "$env_file文件不存在，从模板创建..."
+        if [ "$ENVIRONMENT" = "prod" ] && [ -f ".env.production" ]; then
+            cp .env.production .env
+        elif [ -f ".env.example" ]; then
             cp .env.example .env
-            log_success "已创建.env文件，请编辑配置后重新运行"
-            log_warning "重要：请修改.env文件中的密码和密钥！"
-            exit 0
         else
-            log_error ".env.example文件不存在"
+            log_error "环境配置模板文件不存在"
             exit 1
         fi
+        log_success "已创建.env文件，请编辑配置后重新运行"
+        log_warning "重要：请修改.env文件中的密码和密钥！"
+        exit 0
     fi
     
     # 检查关键配置项

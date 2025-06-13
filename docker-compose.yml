@@ -1,4 +1,5 @@
-version: '3.8'
+# Docker Compose 配置文件
+# 注意：version字段在新版本中已废弃，但为了兼容性保留
 
 services:
   # ===== Django 应用服务 =====
@@ -63,7 +64,12 @@ services:
     image: redis:7-alpine
     container_name: cardverification_redis
     restart: unless-stopped
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --requirepass
+      - "${REDIS_PASSWORD}"
     environment:
       - REDIS_PASSWORD=${REDIS_PASSWORD}
     volumes:
