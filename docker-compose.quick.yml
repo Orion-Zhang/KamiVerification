@@ -27,9 +27,44 @@ services:
         condition: service_healthy
     networks:
       - cardverification_network
-    # 使用简化的启动脚本
-    entrypoint: ["./docker-entrypoint-simple.sh"]
-    command: ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "2", "--timeout", "60", "CardVerification.wsgi:application"]
+    # 使用bash直接启动，避免权限问题
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        echo "=== 快速启动卡片验证系统 ==="
+
+        # 等待数据库
+        echo "等待数据库启动..."
+        while ! nc -z db 5432; do
+          echo "等待数据库连接..."
+          sleep 2
+        done
+        echo "数据库连接成功！"
+
+        # 运行迁移
+        echo "运行数据库迁移..."
+        python manage.py migrate --noinput || echo "迁移失败，继续启动..."
+
+        # 收集静态文件
+        echo "收集静态文件..."
+        python manage.py collectstatic --noinput --clear || echo "静态文件收集失败，继续启动..."
+
+        # 创建超级用户
+        if [ -n "$$DJANGO_SUPERUSER_USERNAME" ] && [ -n "$$DJANGO_SUPERUSER_PASSWORD" ]; then
+          echo "创建超级用户..."
+          python manage.py shell -c "
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        if not User.objects.filter(username='$$DJANGO_SUPERUSER_USERNAME').exists():
+            User.objects.create_superuser('$$DJANGO_SUPERUSER_USERNAME', '$$DJANGO_SUPERUSER_EMAIL', '$$DJANGO_SUPERUSER_PASSWORD')
+            print('超级用户创建成功！')
+        else:
+            print('超级用户已存在。')
+        " || echo "超级用户创建失败"
+        fi
+
+        echo "启动Gunicorn服务器..."
+        exec gunicorn --bind 0.0.0.0:8000 --workers 2 --timeout 60 CardVerification.wsgi:application
 
   # ===== PostgreSQL 数据库服务 =====
   db:

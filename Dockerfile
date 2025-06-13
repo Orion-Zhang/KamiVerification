@@ -57,9 +57,8 @@ RUN mkdir -p /app/staticfiles /app/media /app/logs && \
     chown -R django:django /app
 
 # 复制启动脚本
-COPY docker-entrypoint.sh docker-entrypoint-simple.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh /usr/local/bin/docker-entrypoint-simple.sh && \
-    chown django:django /usr/local/bin/docker-entrypoint.sh /usr/local/bin/docker-entrypoint-simple.sh
+COPY --chmod=755 docker-entrypoint.sh docker-entrypoint-simple.sh /usr/local/bin/
+RUN chown django:django /usr/local/bin/docker-entrypoint.sh /usr/local/bin/docker-entrypoint-simple.sh
 
 # 切换到非root用户
 USER django

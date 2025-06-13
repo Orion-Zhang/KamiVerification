@@ -88,16 +88,30 @@ WSGI_APPLICATION = 'CardVerification.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 # 数据库配置 - 支持环境变量
-import dj_database_url
-
-# 默认使用SQLite，生产环境使用PostgreSQL
-DATABASES = {
-    'default': dj_database_url.config(
-        default=f'sqlite:///{BASE_DIR / "db.sqlite3"}',
-        conn_max_age=60,
-        conn_health_checks=True,
-    )
-}
+if os.environ.get('POSTGRES_DB'):
+    # 生产环境使用PostgreSQL
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.environ.get('POSTGRES_DB', 'cardverification'),
+            'USER': os.environ.get('POSTGRES_USER', 'cardverification'),
+            'PASSWORD': os.environ.get('POSTGRES_PASSWORD', ''),
+            'HOST': os.environ.get('DB_HOST', 'db'),
+            'PORT': os.environ.get('DB_PORT', '5432'),
+            'CONN_MAX_AGE': 60,
+            'OPTIONS': {
+                'connect_timeout': 10,
+            },
+        }
+    }
+else:
+    # 开发环境使用SQLite
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Password validation

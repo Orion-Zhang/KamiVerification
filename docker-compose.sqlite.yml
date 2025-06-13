@@ -1,0 +1,51 @@
+# SQLite版本 - 最简单的测试配置
+
+services:
+  # ===== Django 应用服务（仅SQLite）=====
+  web:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: cardverification_web_sqlite
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=1
+      - SECRET_KEY=django-insecure-test-key-for-sqlite-version
+      - ALLOWED_HOSTS=localhost,127.0.0.1,*
+      - DJANGO_SETTINGS_MODULE=CardVerification.settings
+      - DJANGO_SUPERUSER_USERNAME=admin
+      - DJANGO_SUPERUSER_EMAIL=admin@example.com
+      - DJANGO_SUPERUSER_PASSWORD=admin123
+    volumes:
+      - sqlite_data:/app
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    # 直接启动，使用SQLite
+    command: >
+      bash -c "
+        echo '使用SQLite数据库启动...' &&
+        python manage.py migrate &&
+        python manage.py collectstatic --noinput --clear &&
+        python manage.py shell -c \"
+        from django.contrib.auth import get_user_model;
+        User = get_user_model();
+        if not User.objects.filter(username='admin').exists():
+            User.objects.create_superuser('admin', 'admin@example.com', 'admin123');
+            print('超级用户创建成功！')
+        else:
+            print('超级用户已存在。')
+        \" &&
+        echo '启动Django开发服务器...' &&
+        python manage.py runserver 0.0.0.0:8000
+      "
+
+# ===== 数据卷配置 =====
+volumes:
+  sqlite_data:
+    driver: local
+  static_volume:
+    driver: local
+  media_volume:
+    driver: local
