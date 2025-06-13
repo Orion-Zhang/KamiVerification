@@ -99,13 +99,18 @@ check_env_file() {
     fi
     
     # 检查关键配置项
-    source .env
-    
+    set -a  # 自动导出变量
+    source .env 2>/dev/null || {
+        log_error ".env文件格式错误，请检查语法"
+        exit 1
+    }
+    set +a  # 关闭自动导出
+
     if [ "$SECRET_KEY" = "your-super-secret-key-change-this-in-production" ]; then
         log_error "请修改.env文件中的SECRET_KEY"
         exit 1
     fi
-    
+
     if [ "$POSTGRES_PASSWORD" = "your-strong-database-password" ]; then
         log_error "请修改.env文件中的POSTGRES_PASSWORD"
         exit 1

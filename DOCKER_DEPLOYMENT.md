@@ -43,15 +43,15 @@ nano .env
 SECRET_KEY=your-super-secret-key-change-this-in-production
 
 # 数据库密码
-POSTGRES_PASSWORD=your-strong-database-password
+POSTGRES_PASSWORD=4a-U=U)5Djz=F}+7iNVBwc12:)oYvwZi
 
 # Redis密码
-REDIS_PASSWORD=your-redis-password
+REDIS_PASSWORD=4a-U=U)5Djz=F}+7iNVBwc12:)oYvwZi
 
 # 超级用户配置
-DJANGO_SUPERUSER_USERNAME=admin
-DJANGO_SUPERUSER_EMAIL=admin@yourdomain.com
-DJANGO_SUPERUSER_PASSWORD=your-admin-password
+DJANGO_SUPERUSER_USERNAME=KilluaAoki
+DJANGO_SUPERUSER_EMAIL=KilluaAoki@gmail.com
+DJANGO_SUPERUSER_PASSWORD=4a-U=U)5Djz=F}+7iNVBwc12:)oYvwZi
 
 # 允许的主机
 ALLOWED_HOSTS=localhost,127.0.0.1,your-domain.com
