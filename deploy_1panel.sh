@@ -64,17 +64,13 @@ check_1panel_environment() {
 # 创建必要的目录
 create_directories() {
     log_info "创建必要的目录..."
-    
-    # 创建数据目录
-    mkdir -p logs media staticfiles backups
-    
+
+    # 创建数据目录（移除logs目录）
+    mkdir -p media staticfiles backups
+
     # 设置权限 (适配1Panel容器管理)
-    chmod 755 logs media staticfiles backups
-    
-    # 创建日志文件
-    touch logs/django.log logs/gunicorn_access.log logs/gunicorn_error.log
-    chmod 644 logs/*.log
-    
+    chmod 755 media staticfiles backups
+
     log_success "目录创建完成"
 }
 

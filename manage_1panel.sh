@@ -66,34 +66,26 @@ check_status() {
 
 # 查看日志
 view_logs() {
-    log_info "查看应用日志..."
+    log_info "查看容器日志..."
     echo "选择要查看的日志:"
-    echo "1) 应用日志 (Django)"
-    echo "2) Gunicorn访问日志"
-    echo "3) Gunicorn错误日志"
-    echo "4) 数据库日志"
-    echo "5) Redis日志"
-    echo "6) 所有容器日志"
-    
-    read -p "请选择 (1-6): " choice
-    
+    echo "1) Web应用日志"
+    echo "2) 数据库日志"
+    echo "3) Redis日志"
+    echo "4) 所有容器日志"
+
+    read -p "请选择 (1-4): " choice
+
     case $choice in
         1)
-            docker-compose -f docker-compose.1panel.yml exec web tail -f /app/logs/django.log
+            docker-compose -f docker-compose.1panel.yml logs -f --tail=100 web
             ;;
         2)
-            docker-compose -f docker-compose.1panel.yml exec web tail -f /app/logs/gunicorn_access.log
+            docker-compose -f docker-compose.1panel.yml logs -f --tail=50 db
             ;;
         3)
-            docker-compose -f docker-compose.1panel.yml exec web tail -f /app/logs/gunicorn_error.log
+            docker-compose -f docker-compose.1panel.yml logs -f --tail=50 redis
             ;;
         4)
-            docker-compose -f docker-compose.1panel.yml logs -f db
-            ;;
-        5)
-            docker-compose -f docker-compose.1panel.yml logs -f redis
-            ;;
-        6)
             docker-compose -f docker-compose.1panel.yml logs -f --tail=100
             ;;
         *)

@@ -261,9 +261,7 @@ if not DEBUG:
     SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin'
 
 # ===== 日志配置 =====
-# 确保日志目录存在
-LOGS_DIR = BASE_DIR / 'logs'
-LOGS_DIR.mkdir(exist_ok=True)
+# 简化日志配置，只使用控制台输出，避免文件权限问题
 
 LOGGING = {
     'version': 1,
@@ -277,92 +275,52 @@ LOGGING = {
             'format': '{levelname} {asctime} {message}',
             'style': '{',
         },
-        'json': {
-            'format': '{{"level": "{levelname}", "time": "{asctime}", "module": "{module}", "message": "{message}"}}',
-            'style': '{',
-        },
     },
     'handlers': {
         'console': {
             'level': 'INFO',
             'class': 'logging.StreamHandler',
-            'formatter': 'simple'
-        },
-        'file': {
-            'level': 'INFO',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': LOGS_DIR / 'django.log',
-            'maxBytes': 1024*1024*15,  # 15MB
-            'backupCount': 10,
-            'formatter': 'verbose',
-            'encoding': 'utf-8',
-        },
-        'error_file': {
-            'level': 'ERROR',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': LOGS_DIR / 'django_error.log',
-            'maxBytes': 1024*1024*15,  # 15MB
-            'backupCount': 10,
-            'formatter': 'verbose',
-            'encoding': 'utf-8',
-        },
-        'api_file': {
-            'level': 'INFO',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': LOGS_DIR / 'api.log',
-            'maxBytes': 1024*1024*10,  # 10MB
-            'backupCount': 5,
-            'formatter': 'json',
-            'encoding': 'utf-8',
-        },
-        'security_file': {
-            'level': 'WARNING',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': LOGS_DIR / 'security.log',
-            'maxBytes': 1024*1024*10,  # 10MB
-            'backupCount': 10,
-            'formatter': 'verbose',
-            'encoding': 'utf-8',
+            'formatter': 'verbose' if DEBUG else 'simple'
         },
     },
     'loggers': {
         'django': {
-            'handlers': ['console', 'file'],
+            'handlers': ['console'],
             'level': 'INFO',
             'propagate': True,
         },
         'django.request': {
-            'handlers': ['error_file'],
+            'handlers': ['console'],
             'level': 'ERROR',
             'propagate': False,
         },
         'django.security': {
-            'handlers': ['security_file'],
+            'handlers': ['console'],
             'level': 'WARNING',
             'propagate': False,
         },
         'api': {
-            'handlers': ['api_file', 'console'],
+            'handlers': ['console'],
             'level': 'INFO',
             'propagate': True,
         },
         'cards': {
-            'handlers': ['file', 'error_file'],
+            'handlers': ['console'],
             'level': 'INFO',
             'propagate': True,
         },
         'accounts': {
-            'handlers': ['file', 'security_file'],
+            'handlers': ['console'],
             'level': 'INFO',
             'propagate': True,
         },
         'dashboard': {
-            'handlers': ['file'],
+            'handlers': ['console'],
             'level': 'INFO',
             'propagate': True,
         },
         'settings': {
-            'handlers': ['file'],
+            'handlers': ['console'],
             'level': 'INFO',
             'propagate': True,
         },

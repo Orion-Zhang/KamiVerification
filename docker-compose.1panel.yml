@@ -69,7 +69,6 @@ services:
       - SECURE_SSL_REDIRECT=${SECURE_SSL_REDIRECT:-True}
       - SECURE_HSTS_SECONDS=${SECURE_HSTS_SECONDS:-31536000}
     volumes:
-      - ./logs:/app/logs
       - ./media:/app/media
       - ./staticfiles:/app/staticfiles
       - ./backups:/app/backups

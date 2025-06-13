@@ -33,7 +33,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # 创建必要的目录并设置权限
-RUN mkdir -p logs staticfiles media backups \
+RUN mkdir -p staticfiles media backups \
     && chown -R django:django /app \
     && chmod -R 755 /app
 
@@ -50,7 +50,7 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=30s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:8000/api/v1/health/ || exit 1
 
-# 启动命令 - 优化1Panel环境
+# 启动命令 - 直接使用gunicorn，日志输出到stdout/stderr
 CMD ["gunicorn", "CardVerification.wsgi:application", \
      "--bind", "0.0.0.0:8000", \
      "--workers", "2", \
@@ -61,6 +61,6 @@ CMD ["gunicorn", "CardVerification.wsgi:application", \
      "--timeout", "30", \
      "--keep-alive", "2", \
      "--preload", \
-     "--access-logfile", "/app/logs/gunicorn_access.log", \
-     "--error-logfile", "/app/logs/gunicorn_error.log", \
+     "--access-logfile", "-", \
+     "--error-logfile", "-", \
      "--log-level", "info"]

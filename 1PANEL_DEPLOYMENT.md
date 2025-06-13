@@ -265,7 +265,7 @@ git pull origin main
 
 ### 日志位置
 
-- **应用日志**: `/opt/cardverification/logs/`
+- **应用日志**: 通过Docker容器日志查看 `docker-compose logs web`
 - **1Panel日志**: 通过1Panel面板查看
 - **容器日志**: `docker-compose logs`
 
