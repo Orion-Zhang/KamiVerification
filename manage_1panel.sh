@@ -47,6 +47,7 @@ show_help() {
     echo "  dbshell     - 进入数据库"
     echo "  migrate     - 运行数据库迁移"
     echo "  collectstatic - 收集静态文件"
+    echo "  fix-theme   - 修复深色主题问题"
     echo "  createsuperuser - 创建超级用户"
     echo "  cleanup     - 清理系统"
     echo "  monitor     - 监控容器资源"
@@ -183,6 +184,40 @@ collect_static() {
     log_info "收集静态文件..."
     docker-compose -f docker-compose.1panel.yml exec web python manage.py collectstatic --noinput
     log_success "静态文件收集完成"
+}
+
+# 修复主题问题
+fix_theme() {
+    log_info "修复深色主题问题..."
+
+    # 检查静态文件目录
+    if [[ ! -d "staticfiles" ]]; then
+        log_warning "创建staticfiles目录..."
+        mkdir -p staticfiles
+    fi
+
+    # 重新收集静态文件
+    log_info "重新收集静态文件..."
+    docker-compose -f docker-compose.1panel.yml exec web python manage.py collectstatic --noinput --clear
+
+    # 修复权限
+    log_info "修复文件权限..."
+    chmod -R 755 staticfiles/ 2>/dev/null || true
+    chmod -R 755 static/ 2>/dev/null || true
+
+    # 重启web服务
+    log_info "重启web服务..."
+    docker-compose -f docker-compose.1panel.yml restart web
+
+    # 等待服务启动
+    sleep 5
+
+    log_success "主题修复完成！"
+    echo ""
+    log_info "如果主题仍然是白色，请："
+    echo "1. 清理浏览器缓存 (Ctrl+Shift+Delete)"
+    echo "2. 强制刷新页面 (Ctrl+F5)"
+    echo "3. 检查1Panel反向代理配置是否包含 /static/ 路径"
 }
 
 # 创建超级用户
@@ -328,6 +363,9 @@ main() {
             ;;
         collectstatic)
             collect_static
+            ;;
+        fix-theme)
+            fix_theme
             ;;
         createsuperuser)
             create_superuser

@@ -225,6 +225,32 @@ echo "DB_SSLMODE=prefer" >> .env
 - `prefer`: 优先使用SSL，但不强制（推荐Docker环境）
 - `require`: 强制使用SSL（推荐生产环境）
 
+#### 5. 深色主题显示为白色
+
+如果部署后网站显示为白色主题而不是深色主题：
+
+```bash
+# 使用专用修复脚本
+./fix_theme_issue.sh
+
+# 或使用管理脚本
+./manage_1panel.sh fix-theme
+
+# 手动修复步骤
+./manage_1panel.sh collectstatic
+./manage_1panel.sh restart
+```
+
+**主题问题原因：**
+- 静态文件未正确收集
+- 1Panel反向代理未配置静态文件路径
+- 浏览器缓存了旧的样式文件
+
+**解决步骤：**
+1. 重新收集静态文件
+2. 检查1Panel反向代理配置
+3. 清理浏览器缓存并强制刷新
+
 ### 性能优化
 
 #### 1. 容器资源限制
