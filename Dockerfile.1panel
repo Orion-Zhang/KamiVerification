@@ -32,16 +32,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 # 复制应用代码
 COPY . .
 
-# 创建必要的目录并设置权限
+# 创建必要的目录并设置权限（以root用户运行避免权限问题）
 RUN mkdir -p staticfiles media backups \
-    && chown -R django:django /app \
-    && chmod -R 755 /app
+    && chmod -R 777 /app
 
-# 切换到应用用户
-USER django
-
-# 收集静态文件
-RUN python manage.py collectstatic --noinput
+# 注意：为了避免权限问题，暂时以root用户运行
+# 在生产环境中，建议使用适当的用户权限管理
 
 # 暴露端口
 EXPOSE 8000
