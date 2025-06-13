@@ -278,7 +278,7 @@ LOGGING = {
             'style': '{',
         },
         'json': {
-            'format': '{"level": "{levelname}", "time": "{asctime}", "module": "{module}", "message": "{message}"}',
+            'format': '{{"level": "{levelname}", "time": "{asctime}", "module": "{module}", "message": "{message}"}}',
             'style': '{',
         },
     },
