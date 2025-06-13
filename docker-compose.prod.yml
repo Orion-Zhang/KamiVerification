@@ -1,0 +1,158 @@
+# ===== 生产环境 Docker Compose 配置 =====
+# 使用方法: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+version: '3.8'
+
+services:
+  # ===== Django 应用服务（生产环境优化）=====
+  web:
+    restart: always
+    environment:
+      - DEBUG=0
+      - GUNICORN_WORKERS=4
+      - GUNICORN_TIMEOUT=120
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ===== PostgreSQL 数据库（生产环境优化）=====
+  db:
+    restart: always
+    environment:
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=zh_CN.UTF-8 --lc-ctype=zh_CN.UTF-8
+    command: >
+      postgres
+      -c shared_buffers=256MB
+      -c effective_cache_size=1GB
+      -c maintenance_work_mem=64MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+      -c work_mem=4MB
+      -c min_wal_size=1GB
+      -c max_wal_size=4GB
+      -c max_connections=200
+      -c log_statement=all
+      -c log_min_duration_statement=1000
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ===== Redis 缓存（生产环境优化）=====
+  redis:
+    restart: always
+    command: >
+      redis-server
+      --appendonly yes
+      --requirepass ${REDIS_PASSWORD}
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "3"
+
+  # ===== Nginx 反向代理（生产环境）=====
+  nginx:
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ===== 数据库备份服务 =====
+  db-backup:
+    image: postgres:15-alpine
+    container_name: cardverification_backup
+    restart: "no"
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-cardverification}
+      - POSTGRES_USER=${POSTGRES_USER:-cardverification}
+      - PGPASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data:ro
+      - backup_volume:/backup
+      - ./docker/scripts/backup.sh:/backup.sh:ro
+    command: /backup.sh
+    depends_on:
+      - db
+    networks:
+      - cardverification_network
+    profiles:
+      - backup
+
+  # ===== 监控服务（可选）=====
+  monitoring:
+    image: prom/prometheus:latest
+    container_name: cardverification_monitoring
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./docker/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - cardverification_network
+    profiles:
+      - monitoring
+
+# ===== 生产环境数据卷 =====
+volumes:
+  backup_volume:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/cardverification/backups
+  prometheus_data:
+    driver: local

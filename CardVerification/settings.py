@@ -28,6 +28,11 @@ DEBUG = os.environ.get('DEBUG', '1') == '1'
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '127.0.0.1,localhost,testserver').split(',')
 
+# 反向代理配置
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 
 # Application definition
 
@@ -82,11 +87,16 @@ WSGI_APPLICATION = 'CardVerification.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+# 数据库配置 - 支持环境变量
+import dj_database_url
+
+# 默认使用SQLite，生产环境使用PostgreSQL
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(
+        default=f'sqlite:///{BASE_DIR / "db.sqlite3"}',
+        conn_max_age=60,
+        conn_health_checks=True,
+    )
 }
 
 

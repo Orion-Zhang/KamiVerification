@@ -45,5 +45,8 @@ pytz==2025.2
 # 环境变量管理
 python-decouple==3.8
 
+# 数据库URL解析
+dj-database-url==2.2.0
+
 # 跨域资源共享
 django-cors-headers==4.6.0
